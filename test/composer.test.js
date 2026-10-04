@@ -123,3 +123,12 @@ test('settings normalization keeps known keys with matching types', () => {
   assert.equal('bogus' in s, false);
   assert.equal(normalizeSettings(null).enabled, true);
 });
+
+test('auto-capitalization is off by default; values saved before settings version 2 are dropped', () => {
+  assert.equal(normalizeSettings(null).autoCapitalize, false);
+  assert.equal(normalizeSettings({ autoCapitalize: true, toggleInput: true }).autoCapitalize, false);
+  assert.equal(normalizeSettings({ autoCapitalize: true, toggleInput: true }).toggleInput, true);
+  const saved = normalizeSettings({ autoCapitalize: true });
+  assert.equal(saved.version, 2);
+  assert.equal(normalizeSettings({ ...saved, autoCapitalize: true }).autoCapitalize, true);
+});

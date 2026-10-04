@@ -4,6 +4,11 @@ import { DEFAULT_FLICK_THRESHOLD } from './flick.js';
 import { toMode } from './keyboard-state.js';
 
 const STORAGE_KEY = 'fjk.settings';
+/**
+ * Version of the stored settings. 2 (0.9.2): autoCapitalize is off by default; values saved by
+ * older versions are dropped, since they always held the old default (true).
+ */
+const SETTINGS_VERSION = 2;
 
 /**
  * @typedef {object} Settings
@@ -16,11 +21,12 @@ const STORAGE_KEY = 'fjk.settings';
  * @property {number} liveDelayMs - Quiet time before live candidates are computed while typing
  * @property {boolean} predictions - Also show anthy's predictions (learned history) while typing
  * @property {boolean} suggestions - Show English word suggestions on the QWERTY keyboard
- * @property {boolean} autoCapitalize - Capitalize the first letter after . ! ? and a space, or a new line
+ * @property {boolean} autoCapitalize - Capitalize the first letter after . ! ? and a space, or a new line (off by default)
  * @property {boolean} debugRecorders - Log diagnostics (raw input, key gestures, Steam keyboard calls; never text). Takes effect on the next injection.
  * @property {boolean} updateCheck - Let the injector check GitHub for a new version at start and hourly
  *   (frame-update.sh's own cache limits the actual GitHub call to once a day). The indicator's forced
  *   check (tap) always runs, regardless of this setting; see update.js and README.md.
+ * @property {number} version - Version of the stored settings (SETTINGS_VERSION)
  */
 
 /** @type {Readonly<Settings>} */
@@ -34,9 +40,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   liveDelayMs: 150,
   predictions: true,
   suggestions: true,
-  autoCapitalize: true,
+  autoCapitalize: false,
   debugRecorders: false,
   updateCheck: true,
+  version: SETTINGS_VERSION,
 });
 
 /**
@@ -49,10 +56,13 @@ export const DEFAULT_SETTINGS = Object.freeze({
 export const normalizeSettings = (stored) => {
   const result = { ...DEFAULT_SETTINGS };
   if (stored && typeof stored === 'object') {
+    const old = stored.version !== SETTINGS_VERSION;
     for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
+      if (old && key === 'autoCapitalize') continue;
       if (typeof stored[key] === typeof value) result[key] = stored[key];
     }
   }
+  result.version = SETTINGS_VERSION;
   result.mode = toMode(result.mode);
   return result;
 };

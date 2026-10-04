@@ -89,7 +89,7 @@ __fjk.settings.conversion = false;   // かな漢字変換を使わない（ひ�
 __fjk.settings.liveDelayMs = 150;    // 打つ手を止めてから候補を出すまでの時間（ms、差し直し後に有効）
 __fjk.settings.predictions = true;   // 予測（前に確定した言葉）も候補に出す（差し直し後に有効）
 __fjk.settings.suggestions = true;   // 英語の QWERTY で単語の候補を出す
-__fjk.settings.autoCapitalize = true; // 「. 」などのあとの最初の文字を自動で大文字にする
+__fjk.settings.autoCapitalize = true; // 「. 」や改行のあとの最初の文字を自動で大文字にする（既定はオフ）
 __fjk.settings.updateCheck = true;   // 起動時と 1 時間ごとに更新を自動で確かめる（点のタップには関係ない）
 __fjk.setEnabled(true);              // 自作キーボードのオン／オフ
 ```
