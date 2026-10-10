@@ -106,10 +106,12 @@ test('layout: QWERTY is arranged like a PC keyboard', () => {
   assert.deepEqual(ids(top), ['esc', ...'qwertyuiop', 'backspace']);
   assert.deepEqual(ids(home), ['tab', ...'asdfghjkl', 'enter']);
   assert.deepEqual(ids(lower), ['shift', ...'zxcvbnm', ',', '.', 'shift']);
-  assert.deepEqual(ids(bottom), ['ctrl', 'alt', 'num', 'space', 'mode', 'left', 'right']);
+  assert.deepEqual(ids(bottom), ['ctrl', 'alt', 'num', 'space', 'mode', 'left', 'up', 'down', 'right']);
   assert.equal(bottom.find((k) => k.id === 'mode').long, 'stock');
-  // ← / → flick up to ↑ / ↓, with the hint shown on the key.
-  assert.deepEqual(bottom.filter((k) => k.upAction).map((k) => [k.id, k.up, k.upAction]), [['left', '↑', 'up'], ['right', '↓', 'down']]);
+  // ↑ / ↓ are keys of their own next to ← / →, and all four repeat while held.
+  const arrows = bottom.slice(-4);
+  assert.deepEqual(arrows.map((k) => k.label), ['←', '↑', '↓', '→']);
+  assert.ok(arrows.every((k) => k.repeat && !k.upAction));
   // Letters are all the same width, and every row adds up to the same total.
   assert.ok(PAGES.qwerty.flat().filter((k) => k.letter).every((k) => k.w === 1));
   const width = (row) => row.reduce((sum, k) => sum + k.w, 0);
@@ -139,11 +141,9 @@ test('layout: the number pages keep ⌫, ⏎ and the bottom row where QWERTY has
   }
 });
 
-test('layout: ← / → show the flick guide like letter keys; other action keys do not', () => {
+test('layout: letter keys show the flick guide; action keys (arrows included) do not', () => {
   const keys = PAGES.qwerty.flat();
   const byId = (id) => keys.find((k) => k.id === id);
   assert.ok(hasFlickGuide(byId('q')));
-  assert.ok(hasFlickGuide(byId('left')));
-  assert.ok(hasFlickGuide(byId('right')));
-  for (const id of ['esc', 'tab', 'ctrl', 'space', 'enter', 'backspace']) assert.equal(hasFlickGuide(byId(id)), false, id);
+  for (const id of ['esc', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasFlickGuide(byId(id)), false, id);
 });

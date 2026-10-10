@@ -5,7 +5,7 @@
 //  ↶    あ    か    さ    ⌫            esc q w e r t y u i o p ⌫    (flick up: 1 2 3 4 5 6 7 8 9 0)
 //  ←    た    な    は    →            tab  a s d f g h j k l  ⏎    (flick up: @ # $ % & - + ( ))
 //  ☺記  ま    や    ら    空白           ⇧  z x c v b n m , .  ⇧   (flick up: * " ' : ; ! ? ! ?)
-//  あA  ゛゜小 わ   、。?! ⏎            ctrl alt 123   space   あA ← →   (flick up: ↑ ↓)
+//  あA  ゛゜小 わ   、。?! ⏎            ctrl alt 123  space  あA ← ↑ ↓ →
 import { KANA_KEYS } from './kana-table.js';
 
 /**
@@ -94,10 +94,12 @@ const QWERTY_BOTTOM = Object.freeze([
   action('ctrl', 'ctrl', { w: 1.2 }),
   action('alt', 'alt', { w: 1.2 }),
   action('num', '123', { w: 1.3 }),
-  action('space', 'space', { w: 4.2 }),
+  action('space', 'space', { w: 3.2 }),
   action('mode', 'あA', { w: 1.4, long: 'stock' }),
-  action('left', '←', { w: 1.3, repeat: true, up: '↑', upAction: 'up' }),
-  action('right', '→', { w: 1.3, repeat: true, up: '↓', upAction: 'down' }),
+  action('left', '←', { w: 0.9, repeat: true }),
+  action('up', '↑', { w: 0.9, repeat: true }),
+  action('down', '↓', { w: 0.9, repeat: true }),
+  action('right', '→', { w: 0.9, repeat: true }),
 ]);
 
 /**
@@ -145,11 +147,11 @@ const bottomRow = (pageKey) => QWERTY_BOTTOM.map((k) => (k.id === 'num' ? pageKe
 
 /**
  * Whether a key shows the flick guide while pressed: kana and character keys, and action keys with
- * an up-flick (← / → for ↑ / ↓).
+ * an up-flick (none at the moment; the ui supports `upAction`).
  * @param {KeyDef} def - Key definition
  * @returns {boolean} True when the guide is shown
  * @example
- * hasFlickGuide(PAGES.qwerty[3].find((k) => k.id === 'left')) // true
+ * hasFlickGuide(PAGES.qwerty[0][1]) // true (q)
  */
 export const hasFlickGuide = (def) => def.type === 'kana' || def.type === 'char' || !!def.upAction;
 

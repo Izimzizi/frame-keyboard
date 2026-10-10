@@ -337,7 +337,7 @@ const install = () => {
         return true;
       case 'up':
       case 'down':
-        // ↑ / ↓ (← / → flicked up): the word is committed first, then the key goes out like ← / →.
+        // ↑ / ↓: the word is committed first, then the key goes out like ← / →.
         commitEnglish().then(() => send([{ key: id === 'up' ? 'ArrowUp' : 'ArrowDown' }]));
         return true;
       default:
@@ -395,7 +395,7 @@ const install = () => {
     backspace: 'Backspace', enter: 'Enter', space: 'Space', left: 'ArrowLeft', right: 'ArrowRight',
     up: 'ArrowUp', down: 'ArrowDown',
   });
-  /** Arrow actions (← / → and their up-flicks ↑ / ↓). */
+  /** Arrow actions. */
   const ARROWS = Object.freeze(['left', 'right', 'up', 'down']);
 
   /**
