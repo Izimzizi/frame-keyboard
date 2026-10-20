@@ -106,8 +106,7 @@ test('layout: QWERTY is arranged like a PC keyboard', () => {
   assert.deepEqual(ids(top), ['esc', ...'qwertyuiop', 'backspace']);
   assert.deepEqual(ids(home), ['tab', ...'asdfghjkl', 'enter']);
   assert.deepEqual(ids(lower), ['shift', ...'zxcvbnm', ',', '.', 'shift']);
-  assert.deepEqual(ids(bottom), ['ctrl', 'alt', 'num', 'space', 'mode', 'left', 'up', 'down', 'right']);
-  assert.equal(bottom.find((k) => k.id === 'mode').long, 'stock');
+  assert.deepEqual(ids(bottom), ['ctrl', 'alt', 'num', 'space', 'left', 'up', 'down', 'right']);
   // ↑ / ↓ are keys of their own next to ← / →, and all four repeat while held.
   const arrows = bottom.slice(-4);
   assert.deepEqual(arrows.map((k) => k.label), ['←', '↑', '↓', '→']);

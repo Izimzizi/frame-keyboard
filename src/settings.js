@@ -35,14 +35,14 @@ export const DEFAULT_SETTINGS = Object.freeze({
   flickThreshold: DEFAULT_FLICK_THRESHOLD,
   toggleInput: false,
   toggleTimeoutMs: 800,
-  mode: 'kana',
+  mode: 'qwerty',
   conversion: true,
   liveDelayMs: 150,
   predictions: true,
-  suggestions: true,
+  suggestions: false,
   autoCapitalize: false,
   debugRecorders: false,
-  updateCheck: true,
+  updateCheck: false,
   version: SETTINGS_VERSION,
 });
 
@@ -64,6 +64,9 @@ export const normalizeSettings = (stored) => {
   }
   result.version = SETTINGS_VERSION;
   result.mode = toMode(result.mode);
+  // English-only build: always QWERTY, and never check GitHub for updates.
+  result.mode = 'qwerty';
+  result.updateCheck = false;
   return result;
 };
 

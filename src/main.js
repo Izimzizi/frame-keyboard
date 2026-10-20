@@ -213,7 +213,7 @@ const install = () => {
         const shiftShown = autoCapital() && !modifiers.active ? 'once' : shift.state;
         overlay?.render({
           page: pages.page, mode: pages.mode, shift: shiftShown, view, suggestions,
-          english: { text: english.word, caret: english.caret }, update: updater.view,
+          english: { text: english.word, caret: english.caret },
           modifiers: { ctrl: modifiers.ctrl, alt: modifiers.alt },
         });
       } catch (error) {
@@ -502,10 +502,9 @@ const install = () => {
    */
   const handleChar = (def, direction) => {
     if (englishPage() && modifiers.active) {
-      // With Ctrl / Alt armed the key goes out as a chord, past the word, suggestions and
-      // auto-capitalization. Shift (tap or lock) is part of the chord too.
-      const ch = direction === 'up' && def.up ? def.up : def.ch;
-      const key = keyForChar(ch);
+      // With Ctrl / Alt armed the key goes out as a chord, past auto-capitalization.
+      // Shift (tap or lock) is part of the chord too.
+      const key = keyForChar(def.ch);
       if (key) {
         sendChord(takeHeld(), key);
         scheduleRender();
@@ -516,17 +515,14 @@ const install = () => {
       log('ctrl/alt: this character has no key; typed as text');
     }
     if (englishPage()) {
-      const flicked = direction === 'up' && def.up;
-      if (def.letter && !flicked) {
-        // Auto-capitalize the first letter of a word at a sentence start (shift off).
+      // Instant typing: every key goes to the target the moment it is tapped (like the stock
+      // SteamVR keyboard). There is no word buffer and no flick-up character.
+      if (def.letter) {
         const shifted = shift.state !== 'off';
         const ch = shift.apply(def.ch);
-        english.input(!shifted && !english.word && sentenceStartHere() ? ch.toUpperCase() : ch);
+        ime.text(() => (!shifted && sentenceStartHere() ? ch.toUpperCase() : ch)).then(scheduleRender);
       } else {
-        const ch = flicked ? def.up : def.ch;
-        // Letters stay in the word; punctuation, symbols and digits commit it followed by themselves.
-        if (isWordChar(ch)) english.input(ch);
-        else commitEnglish(ch);
+        ime.text(def.ch).then(scheduleRender);
       }
       scheduleRender();
       return;

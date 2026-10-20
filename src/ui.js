@@ -211,7 +211,7 @@ export const mountOverlay = (doc, handlers) => {
   const updateEl = makeUpdateIndicator();
   const kanaClipsEl = makeClipButtons();
   const kanaBar = el(doc, 'div', 'fjk-kbar fjk-btnrow');
-  kanaBar.append(closeEl, kanaClipsEl, el(doc, 'div', 'fjk-kbar-space'), updateEl, stockEl);
+  kanaBar.append(closeEl, kanaClipsEl, el(doc, 'div', 'fjk-kbar-space'), stockEl);
   const candsEl = el(doc, 'div', 'fjk-cands');
   const placeholderEl = el(doc, 'div', 'fjk-placeholder');
   leftEl.append(topline, candsEl, placeholderEl, kanaBar);
@@ -230,7 +230,7 @@ export const mountOverlay = (doc, handlers) => {
   // Cut / copy / paste, shown while no English word is being typed (the word and its suggestions
   // take the strip then).
   const clipsEl = makeClipButtons();
-  suggestEl.append(suggCloseEl, clipsEl, compEl, suggListEl, suggUpdateEl, suggStockEl);
+  suggestEl.append(suggCloseEl, clipsEl, compEl, suggListEl, suggStockEl);
   const pagesEl = el(doc, 'div', 'fjk-pages');
   rightEl.append(suggestEl, pagesEl);
   mainEl.append(leftEl, rightEl);
@@ -285,7 +285,7 @@ export const mountOverlay = (doc, handlers) => {
           main.append(createIcon(doc, def.id));
         }
         keyEl.append(main);
-        if (def.up) keyEl.append(el(doc, 'span', 'fjk-up', def.up));
+        // Flick-up characters are disabled: no hint on the key (see handlers.onChar below).
         keyDefs.set(keyEl, def);
         keys.push({ el: keyEl, def, main });
         rowEl.append(keyEl);
@@ -401,7 +401,7 @@ export const mountOverlay = (doc, handlers) => {
       candidates = getFlickCandidates(def.id);
     } else if (def.type === 'char' || def.upAction) {
       const main = keyEl.querySelector('.fjk-label')?.textContent || def.label;
-      candidates = { center: main, left: null, up: def.up ?? null, right: null, down: null };
+      candidates = { center: main, left: null, up: null, right: null, down: null };
     }
     if (!candidates) return;
     const sparse = def.type !== 'kana';
@@ -516,14 +516,27 @@ export const mountOverlay = (doc, handlers) => {
     cancelGesture();
     gesture = { ...base, kind: 'key', keyEl, def, barTarget: null, scroll0: 0 };
     keyEl.classList.add('fjk-pressed');
-    if (hasFlickGuide(def)) showGuide(keyEl, def);
     const g = gesture;
+    // Keys without a flick or a long press act on press, not on release, so fast typing is never
+    // held up waiting for a release (and never loses a key to an overlapping press).
+    const pressFire = def.type === 'action' && !def.upAction && !def.long;
+    if (def.type === 'char') {
+      g.fired = true;
+      g.instant = true;
+      handlers.onChar(def, 'center');
+    } else if (pressFire) {
+      g.fired = true;
+      g.instant = true;
+      handlers.onAction(def.id);
+    } else if (hasFlickGuide(def)) {
+      showGuide(keyEl, def);
+    }
     if (def.repeat) {
       g.timer = setTimeout(() => {
         g.fired = true;
         // Held still: auto-repeat takes over (← / →), so its up-flick guide goes away.
         if (def.upAction) guide.hidden = true;
-        handlers.onAction(def.id);
+        if (!pressFire) handlers.onAction(def.id);
         g.timer = setInterval(() => handlers.onAction(def.id), REPEAT_INTERVAL_MS);
       }, REPEAT_DELAY_MS);
     } else if (def.long) {
@@ -560,7 +573,7 @@ export const mountOverlay = (doc, handlers) => {
       clearTimeout(gesture.timer);
       gesture.timer = undefined;
     }
-    if (hasFlickGuide(gesture.def)) highlightGuide(dir);
+    if (hasFlickGuide(gesture.def) && gesture.def.type !== 'char') highlightGuide(dir);
   };
 
   /**
@@ -605,8 +618,8 @@ export const mountOverlay = (doc, handlers) => {
     if (def.type === 'kana') {
       handlers.onKana(def.id, dir);
     } else if (def.type === 'char') {
-      // Only "up" means something on character keys; other directions count as a tap.
-      handlers.onChar(def, dir === 'up' && def.up ? 'up' : 'center');
+      // Character keys do not flick: any release is a tap that types the key itself.
+      handlers.onChar(def, 'center');
     } else if (def.upAction && getFlickDirection(x - x0, y - y0, threshold) === 'up') {
       handlers.onAction(def.upAction);
     } else if (getFlickDirection(x - x0, y - y0, threshold * 2) === 'center') {
@@ -636,6 +649,9 @@ export const mountOverlay = (doc, handlers) => {
     e.stopPropagation();
     lastTouchTime = Date.now();
     pendingFinish?.();
+    // A key that already acted on press (characters, space, shift, ...) may be replaced by a new
+    // press (fast typing, two lasers); flick keys and the bar still take one press at a time.
+    if (gesture?.instant) cancelGesture();
     if (gesture) return; // One press at a time; a second laser is ignored.
     const touch = e.changedTouches[0];
     if (touch) startGesture(e.target, touch.clientX, touch.clientY, 'touch', touch.identifier);
@@ -713,7 +729,9 @@ export const mountOverlay = (doc, handlers) => {
    * root.addEventListener('pointerdown', onPointerDown)
    */
   const onPointerDown = (e) => {
-    if (e.pointerType !== 'mouse' || e.button !== 0 || gesture) return;
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (gesture?.instant) cancelGesture();
+    if (gesture) return;
     if (Date.now() - lastTouchTime < MOUSE_AFTER_TOUCH_MS) return;
     if (startGesture(e.target, e.clientX, e.clientY, 'mouse', e.pointerId)) {
       e.preventDefault();

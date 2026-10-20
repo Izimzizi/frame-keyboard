@@ -18,6 +18,8 @@ const BUFFERED_CALL_GAP_MS = 40;
  * await sleep(50)
  */
 const sleep = (ms) => (ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve());
+/** When the last call was made (buffered mode spaces calls from this, across batches). */
+let lastCallAt = 0;
 /** True while our output is inside a HandleVirtualKeyDown call (tells our calls from stock ones). */
 let sending = false;
 
@@ -297,8 +299,11 @@ export const createOutput = (getMode = () => ({ buffered: false })) => {
    * await deliver(manager, ['かんじ', 'Enter'], false, status)
    */
   const deliver = async (manager, calls, buffered, vrStatus) => {
-    for (const [i, call] of calls.entries()) {
-      if (buffered && i > 0) await sleep(BUFFERED_CALL_GAP_MS);
+    for (const call of calls) {
+      // Buffered mode: keep the gap between every call, also across separate taps, so fast
+      // typing never outruns the buffer component's re-render (that is what dropped letters).
+      if (buffered) await sleep(lastCallAt + BUFFERED_CALL_GAP_MS - Date.now());
+      lastCallAt = Date.now();
       if (typeof call === 'object') {
         sendKeyEvents(call.keys);
         continue;

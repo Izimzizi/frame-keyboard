@@ -58,9 +58,10 @@ test('layouts: every page has 4 rows and symbol pages are full', () => {
   for (const ch of '＠＃％＆＊＋＝／￥') assert.ok([...SYMBOLS_1, ...SYMBOLS_2].includes(ch), ch);
 });
 
-test('layouts: every page can reach あA and the kana page matches the design', () => {
+test('layouts: the English pages have no あA key and the kana page matches the design', () => {
   for (const [id, rows] of Object.entries(PAGES)) {
-    assert.ok(rows.flat().some((k) => k.id === 'mode' && k.long === 'stock'), id);
+    const hasMode = rows.flat().some((k) => k.id === 'mode');
+    assert.equal(hasMode, !['qwerty', 'num', 'num2'].includes(id), id);
   }
   const labels = PAGES.kana.map((row) => row.map((k) => k.label).join(' '));
   assert.deepEqual(labels, [
@@ -71,8 +72,9 @@ test('layouts: every page can reach あA and the kana page matches the design', 
   ]);
 });
 
-test('settings: mode is validated and conversion defaults on', () => {
-  assert.equal(normalizeSettings({ mode: 'qwerty' }).mode, 'qwerty');
-  assert.equal(normalizeSettings({ mode: 'x' }).mode, 'kana');
+test('settings: English-only build is always QWERTY and never checks for updates', () => {
+  assert.equal(normalizeSettings({ mode: 'kana' }).mode, 'qwerty');
+  assert.equal(normalizeSettings({ mode: 'x' }).mode, 'qwerty');
+  assert.equal(normalizeSettings({ updateCheck: true }).updateCheck, false);
   assert.equal(normalizeSettings({}).conversion, true);
 });

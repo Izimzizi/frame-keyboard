@@ -46,10 +46,9 @@ const exercise = async (code) => {
   assert.ok(requests.some((r) => r.op === 'commit'));
   api.debug.page('qwerty');
   const english = await api.debug.english('Helo');
-  assert.ok(english.suggestions.some((s) => s.text === 'Hello'));
-  const index = english.suggestions.findIndex((s) => s.text === 'Hello');
-  const accepted = await api.debug.suggestion(index);
-  assert.equal(accepted.output.at(-1).text, 'Hello ');
+  // Instant typing: nothing is buffered, each key reaches the target as it is tapped.
+  assert.equal(english.composing, '');
+  assert.equal(english.output.slice(-4).map((op) => op.text).join('|'), 'H|e|l|o');
   api.updater.tapIndicator();
   assert.equal(updates.at(-1).action, 'check');
   api.updater.receive({ source: 'check', forced: true, answer: { status: 'up-to-date' } });
@@ -65,10 +64,10 @@ const exercise = async (code) => {
   await Promise.resolve();
   assert.equal(scope.__fjk, undefined);
   assert.equal(intervals.size, 0);
-  return JSON.parse(JSON.stringify({ keys, debugKeys, kana, english, accepted, updates }));
+  return JSON.parse(JSON.stringify({ keys, debugKeys, kana, english, updates }));
 };
 
-test('minified bundle preserves the injector API, kana conversion, English suggestions and reinjection', async () => {
+test('minified bundle preserves the injector API, kana conversion, instant English typing and reinjection', async () => {
   const options = {
     entryPoints: ['src/main.js'], bundle: true, format: 'iife', target: 'chrome126',
     write: false, charset: 'utf8', legalComments: 'inline',
