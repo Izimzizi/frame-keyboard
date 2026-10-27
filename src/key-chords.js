@@ -9,14 +9,37 @@
 // then they disarm by themselves (see createModifiers). They are never held down between chords, so
 // nothing can stay pressed when the keyboard closes or the page changes.
 
-/** @typedef {'ctrl'|'alt'|'shift'} ModifierName */
+/** @typedef {'ctrl'|'meta'|'alt'|'shift'} ModifierName */
 /** @typedef {[code: number, down: boolean]} KeyEvent */
 
 /** Steam's codes for the left modifier keys. */
-export const MODIFIER_CODES = Object.freeze({ alt: 100, shift: 101, ctrl: 103 });
+export const MODIFIER_CODES = Object.freeze({
+  alt: 100,
+  shift: 101,
+  ctrl: 103,
+  // Meta (Windows / Super key): 102, between Shift and Ctrl; changeable with setMetaCode.
+  get meta() {
+    return metaCode;
+  },
+});
+
+/** The code sent for the Meta key (Steam's code, found by testing); settings.metaCode overrides it. */
+let metaCode = 102;
+
+/**
+ * Set the code sent for the Meta key (1 to 255; anything else is ignored).
+ * @param {number} code - Key code
+ * @returns {number} The code now in use
+ * @example
+ * setMetaCode(102)
+ */
+export const setMetaCode = (code) => {
+  if (Number.isInteger(code) && code >= 1 && code <= 255) metaCode = code;
+  return metaCode;
+};
 
 /** Order in which modifiers are pressed (and, reversed, released). */
-const MODIFIER_ORDER = /** @type {const} */ (['ctrl', 'alt', 'shift']);
+const MODIFIER_ORDER = /** @type {const} */ (['ctrl', 'meta', 'alt', 'shift']);
 
 /** USB HID usage IDs of the named (non-character) keys we send. */
 export const NAMED_KEY_CODES = Object.freeze({
@@ -29,6 +52,8 @@ export const NAMED_KEY_CODES = Object.freeze({
   ArrowLeft: 80,
   ArrowDown: 81,
   ArrowUp: 82,
+  Delete: 76,
+  F1: 58, F2: 59, F3: 60, F4: 61, F5: 62, F6: 63, F7: 64, F8: 65, F9: 66, F10: 67, F11: 68, F12: 69,
 });
 
 /** Unshifted US-layout characters and their USB HID usage IDs (letters and digits are computed). */
@@ -100,6 +125,7 @@ export const CLIPBOARD_CHORDS = Object.freeze({ cut: 'x', copy: 'c', paste: 'v' 
  * @returns {{
  *   readonly ctrl: boolean,
  *   readonly alt: boolean,
+ *   readonly meta: boolean,
  *   readonly active: boolean,
  *   toggle: (name: 'ctrl'|'alt') => void,
  *   take: () => {ctrl: boolean, alt: boolean},
@@ -113,10 +139,11 @@ export const CLIPBOARD_CHORDS = Object.freeze({ cut: 'x', copy: 'c', paste: 'v' 
 export const createModifiers = () => {
   let ctrl = false;
   let alt = false;
+  let meta = false;
 
   /**
-   * Tap Ctrl or Alt: arm it, or disarm it when it is already armed.
-   * @param {'ctrl'|'alt'} name - Modifier
+   * Tap Ctrl, Meta or Alt: arm it, or disarm it when it is already armed.
+   * @param {'ctrl'|'meta'|'alt'} name - Modifier
    * @returns {void}
    * @example
    * toggle('alt')
@@ -124,18 +151,20 @@ export const createModifiers = () => {
   const toggle = (name) => {
     if (name === 'ctrl') ctrl = !ctrl;
     else if (name === 'alt') alt = !alt;
+    else if (name === 'meta') meta = !meta;
   };
 
   /**
    * Take the armed modifiers for the next key and disarm them.
-   * @returns {{ctrl: boolean, alt: boolean}} The modifiers that were armed
+   * @returns {{ctrl: boolean, alt: boolean, meta: boolean}} The modifiers that were armed
    * @example
    * take()
    */
   const take = () => {
-    const taken = { ctrl, alt };
+    const taken = { ctrl, alt, meta };
     ctrl = false;
     alt = false;
+    meta = false;
     return taken;
   };
 
@@ -148,6 +177,7 @@ export const createModifiers = () => {
   const clear = () => {
     ctrl = false;
     alt = false;
+    meta = false;
   };
 
   return {
@@ -157,8 +187,11 @@ export const createModifiers = () => {
     get alt() {
       return alt;
     },
+    get meta() {
+      return meta;
+    },
     get active() {
-      return ctrl || alt;
+      return ctrl || alt || meta;
     },
     toggle,
     take,

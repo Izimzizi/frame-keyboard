@@ -90,7 +90,7 @@ export const OVERLAY_CSS = `
 
 /* Strip above the full-width pages: close | English word and suggestions | update, Steam ⌨. */
 .fjk-suggest {
-  flex: 0 0 36px; height: 36px; min-height: 0; display: flex; align-items: stretch; gap: 6px;
+  flex: 0 0 26px; height: 26px; min-height: 0; display: flex; align-items: stretch; gap: 6px;
   border-bottom: 1px solid #33363b;
 }
 .fjk-sugg-list { flex: 1 1 0; min-width: 0; display: flex; align-items: stretch; overflow: hidden; }
@@ -140,7 +140,9 @@ export const OVERLAY_CSS = `
 }
 .fjk-page-qwerty .fjk-icon, .fjk-page-num .fjk-icon, .fjk-page-num2 .fjk-icon,
 .fjk-page-sym1 .fjk-icon, .fjk-page-sym2 .fjk-icon { width: 26px; height: 26px; }
-.fjk-up { position: absolute; top: 3px; right: 6px; font-size: 13px; color: var(--dim); }
+.fjk-up { position: absolute; top: 2px; right: 5px; font-size: 12px; line-height: 1; color: var(--dim); }
+.fjk-page-qwerty .fjk-row:first-child .fjk-key { font-size: 20px; }
+.fjk-page-qwerty .fjk-row:first-child .fjk-up { top: 1px; right: 4px; font-size: 11px; }
 .fjk-m-kana, .fjk-m-en { color: var(--dim); font-size: 17px; }
 .fjk-key[data-mode="kana"] .fjk-m-kana, .fjk-key[data-mode="qwerty"] .fjk-m-en { color: var(--text); font-size: 23px; font-weight: 700; }
 
@@ -218,4 +220,29 @@ export const OVERLAY_CSS = `
   background: rgba(138, 180, 248, 0.9); color: #0b1b33; font-size: 15px; font-weight: 700; cursor: pointer;
   font-family: "Noto Sans CJK JP", "Noto Sans JP", sans-serif; touch-action: none;
 }
+
+/* Utility strip (close, cut / copy / paste, click sound, Steam ⌨): small, to leave the room to the keys. */
+.fjk-suggest .fjk-close { flex: 0 0 40px; width: 40px; height: 22px; }
+.fjk-suggest .fjk-close .fjk-icon { width: 18px; height: 18px; }
+.fjk-suggest .fjk-clip { width: 40px; height: 22px; border-radius: 6px; }
+.fjk-suggest .fjk-clip .fjk-icon { width: 16px; height: 16px; }
+.fjk-suggest .fjk-clips { margin-left: 6px; gap: 4px; }
+.fjk-suggest .fjk-stock { height: 22px; padding: 0 10px; border-radius: 6px; font-size: 12px; }
+.fjk-sound {
+  flex: 0 0 34px; width: 34px; height: 22px; align-self: center; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; border: 1px solid var(--side-edge); background: var(--side); color: #c7ccd3; font-size: 14px; cursor: pointer;
+}
+.fjk-sound.fjk-pressed { background: var(--pressed); color: var(--text); }
+.fjk-sound.fjk-sound-off { color: #6b7078; text-decoration: line-through; }
+
+/* Esc and F1 to F12: small keys in the utility strip (they share its width), and the Meta key's logo. */
+.fjk-fkeys { flex: 1 1 0; min-width: 0; display: flex; gap: 3px; align-self: center; margin: 0 6px; }
+.fjk-fkey {
+  flex: 1 1 0; min-width: 0; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 5px; border: 1px solid var(--side-edge); background: var(--side); color: #c7ccd3;
+  font-size: 11px; cursor: pointer; overflow: hidden;
+}
+.fjk-fkey.fjk-pressed { background: var(--pressed); color: var(--text); }
+.fjk-sugg-list:empty { display: none; }
+.fjk-icon-meta-windows path { fill: currentColor; stroke: none; }
 `;

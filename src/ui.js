@@ -19,6 +19,7 @@ import { createCursorTracker } from './cursor-tracker.js';
 import { createInputRecorder } from './input-recorder.js';
 import { getFlickDirection, DIRECTIONS } from './flick.js';
 import { createIcon, hasIcon } from './icons.js';
+import { detectPlatform, metaIconFor } from './platform.js';
 import { getFlickCandidates } from './kana-table.js';
 import { isIndicatorShown } from './update.js';
 import { PAGES, hasFlickGuide } from './layout.js';
@@ -108,6 +109,8 @@ const closest = (target, selector) => (typeof target?.closest === 'function' ? t
  * @property {() => void} onEnable - The re-enable button was pressed
  * @property {(record: object) => void} [onGesture] - A key gesture ended (numbers only; debug log)
  * @property {(window: {press: number, entries: any[]}) => void} [onRecord] - Raw input around a press (temporary recorder)
+ * @property {(def: KeyDef) => void} [onKeyDown] - A key was pressed (for the click sound)
+ * @property {() => void} onSoundTap - The click sound button was tapped
  * @property {() => void} onUpdateTap - The update indicator dot was tapped (forces a check)
  * @property {(action: 'yes'|'no'|'dismiss') => void} onUpdateAction - A button in the update banner was pressed
  */
@@ -147,6 +150,8 @@ const closest = (target, selector) => (typeof target?.closest === 'function' ? t
  * overlay.render({ page: 'kana', mode: 'kana', shift: 'off', view });
  */
 export const mountOverlay = (doc, handlers) => {
+  // The Meta key shows the Windows logo on Windows and the Steam logo on SteamOS (see platform.js).
+  const metaIcon = metaIconFor(detectPlatform(doc.defaultView?.navigator ?? globalThis.navigator));
   doc.getElementById(HOST_ID)?.remove();
 
   const host = doc.createElement('div');
@@ -223,14 +228,22 @@ export const mountOverlay = (doc, handlers) => {
   // The English word being typed (underlined); tapping it commits it as typed.
   const compEl = el(doc, 'div', 'fjk-sugg fjk-sugg-comp');
   compEl.dataset.index = '-1';
+  const soundEl = el(doc, 'div', 'fjk-sound', '♪');
+  soundEl.title = 'Key click sound';
   const suggStockEl = el(doc, 'div', 'fjk-stock', 'Steam ⌨');
   suggStockEl.title = 'Steam の純正キーボードに切り替え';
   const suggCloseEl = makeCloseButton();
   const suggUpdateEl = makeUpdateIndicator();
   // Cut / copy / paste, shown while no English word is being typed (the word and its suggestions
   // take the strip then).
-  const clipsEl = makeClipButtons();
-  suggestEl.append(suggCloseEl, clipsEl, compEl, suggListEl, suggStockEl);
+  // Esc and F1 to F12: small keys in the strip (they go out as key presses, with any armed modifier).
+  const fKeysEl = el(doc, 'div', 'fjk-fkeys');
+  for (const [action, label] of [['esc', 'esc'], ...Array.from({ length: 12 }, (_, i) => [`f${i + 1}`, `F${i + 1}`])]) {
+    const button = el(doc, 'div', 'fjk-fkey', label);
+    button.dataset.action = action;
+    fKeysEl.append(button);
+  }
+  suggestEl.append(suggCloseEl, fKeysEl, compEl, suggListEl, soundEl, suggStockEl);
   const pagesEl = el(doc, 'div', 'fjk-pages');
   rightEl.append(suggestEl, pagesEl);
   mainEl.append(leftEl, rightEl);
@@ -263,6 +276,7 @@ export const mountOverlay = (doc, handlers) => {
     const keys = [];
     for (const row of PAGES[pageId]) {
       const rowEl = el(doc, 'div', 'fjk-row');
+      if (row[0]?.rowH) rowEl.style.flexGrow = String(row[0].rowH);
       for (const def of row) {
         if (def.type === 'spacer') {
           const gap = el(doc, 'div', 'fjk-spacer');
@@ -276,18 +290,21 @@ export const mountOverlay = (doc, handlers) => {
         const keyEl = el(doc, 'div', classes.join(' '));
         keyEl.style.flexGrow = String(def.w);
         keyEl.dataset.fjkId = def.id;
-        const icon = def.type === 'action' && hasIcon(def.id);
+        const iconId = def.id === 'meta' ? metaIcon : def.id;
+        const icon = def.type === 'action' && hasIcon(iconId);
         const main = el(doc, 'span', 'fjk-label', def.id === 'mode' || icon ? undefined : def.label);
         if (def.id === 'mode') {
           // "あA" with the current mode's half highlighted (see render()).
           main.append(el(doc, 'span', 'fjk-m-kana', 'あ'), el(doc, 'span', 'fjk-m-en', 'A'));
         } else if (icon) {
-          main.append(createIcon(doc, def.id));
+          main.append(createIcon(doc, iconId));
         }
         keyEl.append(main);
-        // Flick-up characters are disabled: no hint on the key (see handlers.onChar below).
+        // The character typed with shift, small in the corner (it swaps with the main label then).
+        const hint = def.alt ? el(doc, 'span', 'fjk-up', def.alt) : null;
+        if (hint) keyEl.append(hint);
         keyDefs.set(keyEl, def);
-        keys.push({ el: keyEl, def, main });
+        keys.push({ el: keyEl, def, main, hint });
         rowEl.append(keyEl);
       }
       pageEl.append(rowEl);
@@ -505,9 +522,10 @@ export const mountOverlay = (doc, handlers) => {
     if (closest(target, '.fjk-candbar')) {
       cancelGesture();
       const barTarget = closest(target, '.fjk-cand') ?? closest(target, '.fjk-sugg') ?? closest(target, '.fjk-close')
-        ?? closest(target, '.fjk-clip') ?? closest(target, '.fjk-update') ?? closest(target, '.fjk-stock');
+        ?? closest(target, '.fjk-clip') ?? closest(target, '.fjk-fkey') ?? closest(target, '.fjk-update') ?? closest(target, '.fjk-sound') ?? closest(target, '.fjk-stock');
       gesture = { ...base, kind: 'bar', keyEl: null, def: null, barTarget, scroll0: candsEl.scrollTop };
       barTarget?.classList.add('fjk-pressed');
+      if (barTarget) handlers.onKeyDown?.(null);
       return true;
     }
     const keyEl = closest(target, '.fjk-key');
@@ -517,6 +535,7 @@ export const mountOverlay = (doc, handlers) => {
     gesture = { ...base, kind: 'key', keyEl, def, barTarget: null, scroll0: 0 };
     keyEl.classList.add('fjk-pressed');
     const g = gesture;
+    handlers.onKeyDown?.(def);
     // Keys without a flick or a long press act on press, not on release, so fast typing is never
     // held up waiting for a release (and never loses a key to an overlapping press).
     const pressFire = def.type === 'action' && !def.upAction && !def.long;
@@ -608,7 +627,8 @@ export const mountOverlay = (doc, handlers) => {
       if (barTarget.classList.contains('fjk-close')) handlers.onAction('close');
       else if (barTarget.classList.contains('fjk-stock')) handlers.onAction('stock');
       else if (barTarget.classList.contains('fjk-update')) handlers.onUpdateTap();
-      else if (barTarget.classList.contains('fjk-clip')) handlers.onAction(barTarget.dataset.action);
+      else if (barTarget.classList.contains('fjk-sound')) handlers.onSoundTap();
+      else if (barTarget.classList.contains('fjk-clip') || barTarget.classList.contains('fjk-fkey')) handlers.onAction(barTarget.dataset.action);
       else if (barTarget.classList.contains('fjk-sugg')) handlers.onSuggestion(Number(barTarget.dataset.index));
       else handlers.onCandidate(Number(barTarget.dataset.index));
       return;
@@ -821,7 +841,6 @@ export const mountOverlay = (doc, handlers) => {
   const renderEnglish = (english) => {
     const chars = Array.from(english.text);
     compEl.hidden = chars.length === 0;
-    clipsEl.hidden = chars.length > 0;
     compEl.replaceChildren(
       el(doc, 'span', 'fjk-pre', chars.slice(0, english.caret).join('')),
       el(doc, 'span', 'fjk-caret'),
@@ -1019,6 +1038,7 @@ export const mountOverlay = (doc, handlers) => {
     renderSuggestions(state.suggestions ?? []);
     renderEnglish(state.english ?? { text: '', caret: 0 });
     renderUpdate(state.update);
+    soundEl.classList.toggle('fjk-sound-off', state.sound === false);
     const composing = view.phase === 'composing' || view.phase === 'converting';
     // The update indicator steps aside while anything is being typed (its badge state is kept).
     const kanaComposing = composing || view.preedit.length > 0;
@@ -1050,6 +1070,7 @@ export const mountOverlay = (doc, handlers) => {
           break;
         case 'ctrl':
         case 'alt':
+        case 'meta':
           keyEl.classList.toggle('fjk-on', !!state.modifiers?.[def.id]);
           break;
         case 'shift':
@@ -1059,6 +1080,11 @@ export const mountOverlay = (doc, handlers) => {
           break;
         default:
           if (def.letter) setLabel(key, shift === 'off' ? def.ch : def.ch.toUpperCase());
+          else if (def.alt) {
+            const shifted = shift !== 'off';
+            setLabel(key, shifted ? def.alt : def.ch);
+            if (key.hint) key.hint.textContent = shifted ? def.ch : def.alt;
+          }
       }
     }
     renderPreedit(view);

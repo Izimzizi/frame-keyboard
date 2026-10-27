@@ -49,6 +49,18 @@ const exercise = async (code) => {
   // Instant typing: nothing is buffered, each key reaches the target as it is tapped.
   assert.equal(english.composing, '');
   assert.equal(english.output.slice(-4).map((op) => op.text).join('|'), 'H|e|l|o');
+  // Symbol keys type their shifted character while shift is on; a one-shot shift is then used up.
+  const bang = await api.debug.tapChar('1', true);
+  assert.equal(bang.output.at(-1).text, '!');
+  assert.equal(bang.shift, 'off');
+  assert.equal((await api.debug.tapChar('1')).output.at(-1).text, '1');
+  // Meta: one tap only arms it; a second tap right after sends Meta (code 102) by itself.
+  const metaSends = () => api.debug.state().output.filter((op) => op.keys?.[0]?.[0] === 102).length;
+  const before = metaSends();
+  await api.debug.key('meta');
+  assert.equal(metaSends(), before);
+  await api.debug.key('meta');
+  assert.equal(metaSends(), before + 1);
   api.updater.tapIndicator();
   assert.equal(updates.at(-1).action, 'check');
   api.updater.receive({ source: 'check', forced: true, answer: { status: 'up-to-date' } });

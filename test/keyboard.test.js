@@ -45,9 +45,9 @@ test('pages: あA toggles modes, temporary pages go back', () => {
   assert.equal(createKeyboardState('qwerty').page, 'qwerty');
 });
 
-test('layouts: every page has 4 rows and symbol pages are full', () => {
+test('layouts: every page has 4 rows (QWERTY has 5) and symbol pages are full', () => {
   for (const [id, rows] of Object.entries(PAGES)) {
-    assert.equal(rows.length, 4, id);
+    assert.equal(rows.length, id === 'qwerty' ? 5 : 4, id);
     for (const row of rows) {
       for (const key of row) assert.ok(key.w > 0, `${id} ${key.id}`);
     }
@@ -61,7 +61,7 @@ test('layouts: every page has 4 rows and symbol pages are full', () => {
 test('layouts: the English pages have no あA key and the kana page matches the design', () => {
   for (const [id, rows] of Object.entries(PAGES)) {
     const hasMode = rows.flat().some((k) => k.id === 'mode');
-    assert.equal(hasMode, !['qwerty', 'num', 'num2'].includes(id), id);
+    assert.equal(hasMode, id !== 'qwerty', id);
   }
   const labels = PAGES.kana.map((row) => row.map((k) => k.label).join(' '));
   assert.deepEqual(labels, [
@@ -76,5 +76,7 @@ test('settings: English-only build is always QWERTY and never checks for updates
   assert.equal(normalizeSettings({ mode: 'kana' }).mode, 'qwerty');
   assert.equal(normalizeSettings({ mode: 'x' }).mode, 'qwerty');
   assert.equal(normalizeSettings({ updateCheck: true }).updateCheck, false);
+  assert.equal(normalizeSettings({}).sound, true);
+  assert.equal(normalizeSettings({ sound: false }).sound, false);
   assert.equal(normalizeSettings({}).conversion, true);
 });

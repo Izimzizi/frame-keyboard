@@ -10,6 +10,15 @@ const ICON_PATHS = Object.freeze({
   backspace: ['M21 5H9l-7 7 7 7h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1z', 'M12 9l6 6', 'M18 9l-6 6'],
   // Hide the keyboard: a keyboard with a chevron pointing down (like Android's "hide keyboard").
   close: ['M3 3h18a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M6 7h1', 'M10 7h1', 'M14 7h1', 'M18 7h1', 'M8 10.5h8', 'M8 17.5l4 3.5 4-3.5'],
+  // Meta key: the Windows logo (four panes, filled by CSS) and a simple Steam-style mark (a ring and a
+  // small circle joined by a rod inside a circle), drawn for this project.
+  'meta-windows': ['M3 3h8v8H3z', 'M13 3h8v8h-8z', 'M3 13h8v8H3z', 'M13 13h8v8h-8z'],
+  'meta-steam': [
+    'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z',
+    'M18.2 9.5a3.2 3.2 0 1 0-6.4 0 3.2 3.2 0 0 0 6.4 0z',
+    'M10 15.5a2 2 0 1 0-4 0 2 2 0 0 0 4 0z',
+    'M9.7 14.2l2.6-2.6',
+  ],
   // Clipboard buttons of the kana bar: scissors, two sheets, a clipboard.
   cut: ['M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z', 'M21 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0z', 'M8.2 15.8 18 3', 'M15.8 15.8 6 3'],
   copy: ['M10 8h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z', 'M6 16H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v1'],

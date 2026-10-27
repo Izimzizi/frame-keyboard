@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CLIPBOARD_CHORDS, MODIFIER_CODES, createModifiers, keyForChar, keyForName, planChord } from '../src/key-chords.js';
+import { CLIPBOARD_CHORDS, MODIFIER_CODES, createModifiers, keyForChar, keyForName, planChord, setMetaCode } from '../src/key-chords.js';
 import { planCalls } from '../src/output-plan.js';
 import { releaseHeldKeys, sendKeyEvents } from '../src/steam.js';
 import { PAGES, hasFlickGuide } from '../src/layout.js';
@@ -58,9 +58,9 @@ test('modifiers: tap arms, tap again cancels, and the next key takes them once',
   assert.equal(mods.active, false);
   mods.toggle('ctrl');
   mods.toggle('alt');
-  assert.deepEqual(mods.take(), { ctrl: true, alt: true });
+  assert.deepEqual(mods.take(), { ctrl: true, alt: true, meta: false });
   assert.equal(mods.active, false);
-  assert.deepEqual(mods.take(), { ctrl: false, alt: false });
+  assert.deepEqual(mods.take(), { ctrl: false, alt: false, meta: false });
   mods.toggle('alt');
   mods.clear();
   assert.equal(mods.active, false);
@@ -100,13 +100,14 @@ test('output: without the key-state call a chord is dropped, never typed', () =>
   assert.equal(sendKeyEvents(planChord({ ctrl: true }, keyForChar('v'))), false);
 });
 
-test('layout: QWERTY is arranged like a PC keyboard', () => {
-  const [top, home, lower, bottom] = PAGES.qwerty;
+test('layout: QWERTY is arranged like the SteamVR keyboard, with a number row on top', () => {
+  const [numbers, top, home, lower, bottom] = PAGES.qwerty;
   const ids = (row) => row.map((k) => k.id);
-  assert.deepEqual(ids(top), ['esc', ...'qwertyuiop', 'backspace']);
-  assert.deepEqual(ids(home), ['tab', ...'asdfghjkl', 'enter']);
-  assert.deepEqual(ids(lower), ['shift', ...'zxcvbnm', ',', '.', 'shift']);
-  assert.deepEqual(ids(bottom), ['ctrl', 'alt', 'num', 'space', 'left', 'up', 'down', 'right']);
+  assert.deepEqual(ids(numbers), ['`', ...'1234567890', '-', '=', 'backspace']);
+  assert.deepEqual(ids(top), ['tab', ...'qwertyuiop', '[', ']', '\\']);
+  assert.deepEqual(ids(home), ['del', ...'asdfghjkl', ';', "'", 'enter']);
+  assert.deepEqual(ids(lower), ['shift', ...'zxcvbnm', ',', '.', '/', 'shift']);
+  assert.deepEqual(ids(bottom), ['ctrl', 'meta', 'alt', 'space', 'left', 'up', 'down', 'right']);
   // ↑ / ↓ are keys of their own next to ← / →, and all four repeat while held.
   const arrows = bottom.slice(-4);
   assert.deepEqual(arrows.map((k) => k.label), ['←', '↑', '↓', '→']);
@@ -114,29 +115,50 @@ test('layout: QWERTY is arranged like a PC keyboard', () => {
   // Letters are all the same width, and every row adds up to the same total.
   assert.ok(PAGES.qwerty.flat().filter((k) => k.letter).every((k) => k.w === 1));
   const width = (row) => row.reduce((sum, k) => sum + k.w, 0);
-  for (const row of PAGES.qwerty) assert.ok(Math.abs(width(row) - width(top)) < 1e-9);
+  for (const row of PAGES.qwerty) assert.ok(Math.abs(width(row) - width(numbers)) < 1e-9);
 });
 
-test('layout: the number pages keep ⌫, ⏎ and the bottom row where QWERTY has them', () => {
-  /**
-   * Left edge and width of the key with an id in a row, in key widths.
-   * @param {object[]} row - Row
-   * @param {string} id - Key id
-   * @returns {[number, number]} Start and width
-   * @example
-   * span(row, 'enter')
-   */
-  const span = (row, id) => {
-    const i = row.findIndex((k) => k.id === id);
-    return [row.slice(0, i).reduce((sum, k) => sum + k.w, 0), row[i].w].map((v) => Math.round(v * 1000) / 1000);
-  };
-  const [top, home, , bottom] = PAGES.qwerty;
-  for (const id of ['num', 'num2']) {
-    const [nTop, nHome, , nBottom] = PAGES[id];
-    assert.deepEqual(span(nTop, 'backspace'), span(top, 'backspace'), id);
-    assert.deepEqual(span(nHome, 'enter'), span(home, 'enter'), id);
-    assert.deepEqual(span(nHome, 'tab'), span(home, 'tab'), id);
-    assert.deepEqual(nBottom.map((k) => [k.id === 'qwerty' ? 'num' : k.id, k.w]), bottom.map((k) => [k.id, k.w]), id);
+test('layout: the bottom row is ctrl, meta, alt, a wide space bar and the arrows', () => {
+  const bottom = PAGES.qwerty[4];
+  assert.deepEqual(bottom.slice(0, 3).map((k) => k.w), [1.5, 1.5, 1.5]);
+  assert.equal(bottom.find((k) => k.id === 'space').w, 6.5);
+  // Meta acts on press (a tap arms it, a second tap sends it alone), and Del repeats like Backspace.
+  assert.equal(bottom.find((k) => k.id === 'meta').long, undefined);
+  const del = PAGES.qwerty[2][0];
+  assert.equal(del.id, 'del');
+  assert.equal(del.repeat, true);
+  assert.equal(PAGES.fn, undefined);
+});
+
+test('meta: a tap arms it like Ctrl / Alt, and it goes out with the next key', () => {
+  const mods = createModifiers();
+  mods.toggle('meta');
+  assert.equal(mods.meta, true);
+  assert.equal(mods.active, true);
+  assert.deepEqual(mods.take(), { ctrl: false, alt: false, meta: true });
+  assert.equal(mods.active, false);
+  assert.deepEqual(planChord({ meta: true }, keyForChar('r')), [
+    [MODIFIER_CODES.meta, true], [21, true], [21, false], [MODIFIER_CODES.meta, false],
+  ]);
+  // The code can be changed (and bad values are ignored) in case Steam uses another one.
+  const before = MODIFIER_CODES.meta;
+  assert.equal(before, 102);
+  assert.equal(setMetaCode(227), 227);
+  assert.equal(MODIFIER_CODES.meta, 227);
+  assert.equal(setMetaCode(0), 227);
+  assert.equal(setMetaCode(before), before);
+});
+
+test('layout: symbol keys carry the character they type with shift', () => {
+  const alt = Object.fromEntries(PAGES.qwerty.flat().filter((k) => k.alt).map((k) => [k.ch, k.alt]));
+  assert.deepEqual(alt, {
+    '`': '~', 1: '!', 2: '@', 3: '#', 4: '$', 5: '%', 6: '^', 7: '&', 8: '*', 9: '(', 0: ')',
+    '-': '_', '=': '+', '[': '{', ']': '}', '\\': '|', ';': ':', "'": '"', ',': '<', '.': '>', '/': '?',
+  });
+  // Every pair is one physical key on a US layout, so Ctrl/Alt chords still work with shift.
+  for (const [ch, shifted] of Object.entries(alt)) {
+    assert.equal(keyForChar(shifted).code, keyForChar(ch).code, ch);
+    assert.equal(keyForChar(shifted).shift, true, ch);
   }
 });
 
@@ -144,5 +166,5 @@ test('layout: letter keys show the flick guide; action keys (arrows included) do
   const keys = PAGES.qwerty.flat();
   const byId = (id) => keys.find((k) => k.id === id);
   assert.ok(hasFlickGuide(byId('q')));
-  for (const id of ['esc', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasFlickGuide(byId(id)), false, id);
+  for (const id of ['del', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasFlickGuide(byId(id)), false, id);
 });

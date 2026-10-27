@@ -22,6 +22,8 @@ const SETTINGS_VERSION = 2;
  * @property {boolean} predictions - Also show anthy's predictions (learned history) while typing
  * @property {boolean} suggestions - Show English word suggestions on the QWERTY keyboard
  * @property {boolean} autoCapitalize - Capitalize the first letter after . ! ? and a space, or a new line (off by default)
+ * @property {number} metaCode - Key code sent for the Meta key (102 by default)
+ * @property {boolean} sound - Play a short click when a key is pressed
  * @property {boolean} debugRecorders - Log diagnostics (raw input, key gestures, Steam keyboard calls; never text). Takes effect on the next injection.
  * @property {boolean} updateCheck - Let the injector check GitHub for a new version at start and hourly
  *   (frame-update.sh's own cache limits the actual GitHub call to once a day). The indicator's forced
@@ -41,6 +43,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   predictions: true,
   suggestions: false,
   autoCapitalize: false,
+  metaCode: 102,
+  sound: true,
   debugRecorders: false,
   updateCheck: false,
   version: SETTINGS_VERSION,

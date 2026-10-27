@@ -9,7 +9,8 @@ import { createEnglishComposition, isWordChar } from './english-compose.js';
 import { createAnthyClient } from './anthy-client.js';
 import { installApiRecorder } from './api-recorder.js';
 import { createIme } from './ime.js';
-import { CLIPBOARD_CHORDS, createModifiers, keyForChar, keyForName, planChord } from './key-chords.js';
+import { CLIPBOARD_CHORDS, MODIFIER_CODES, createModifiers, keyForChar, keyForName, planChord, setMetaCode } from './key-chords.js';
+import { detectPlatform } from './platform.js';
 import { createKeyboardState } from './keyboard-state.js';
 import { log, warn } from './log.js';
 import { loadSettings, saveSettings } from './settings.js';
@@ -24,6 +25,8 @@ import {
   isOurCall,
   releaseHeldKeys,
 } from './steam.js';
+import { PAGES } from './layout.js';
+import { createClickSound } from './click-sound.js';
 import { createUpdater } from './update.js';
 import { mountOverlay } from './ui.js';
 
@@ -64,6 +67,8 @@ const overlayBounds = (doc) => {
  */
 const install = () => {
   const settings = loadSettings();
+  setMetaCode(settings.metaCode);
+  const platform = detectPlatform();
   const pages = createKeyboardState(settings.mode);
   const shift = createShift();
   /** One-shot Ctrl / Alt of the QWERTY and number pages (key-chords.js). */
@@ -214,7 +219,7 @@ const install = () => {
         overlay?.render({
           page: pages.page, mode: pages.mode, shift: shiftShown, view, suggestions,
           english: { text: english.word, caret: english.caret },
-          modifiers: { ctrl: modifiers.ctrl, alt: modifiers.alt },
+          modifiers: { ctrl: modifiers.ctrl, alt: modifiers.alt, meta: modifiers.meta }, sound: settings.sound,
         });
       } catch (error) {
         warn('render failed', error);
@@ -267,6 +272,7 @@ const install = () => {
       warn('update bridge send failed', error);
     }
   };
+  const clicker = createClickSound(() => overlayDoc?.defaultView);
   const updater = createUpdater({ lang: LANG, send: bridgeSend, onChange: scheduleRender, warn });
 
   /**
@@ -390,6 +396,10 @@ const install = () => {
     return held;
   };
 
+  /** Two Meta taps within this many ms send Meta by itself. */
+  const META_DOUBLE_TAP_MS = 500;
+  let lastMetaTap = 0;
+
   /** Action keys that go out as a key (with the armed Ctrl / Alt) instead of their usual meaning. */
   const CHORD_ACTIONS = Object.freeze({
     backspace: 'Backspace', enter: 'Enter', space: 'Space', left: 'ArrowLeft', right: 'ArrowRight',
@@ -405,12 +415,41 @@ const install = () => {
    * @example
    * handleChordAction('copy')
    */
+  const FN_KEYS = Object.freeze({
+    f1: 'F1', f2: 'F2', f3: 'F3', f4: 'F4', f5: 'F5', f6: 'F6', f7: 'F7', f8: 'F8', f9: 'F9', f10: 'F10',
+    f11: 'F11', f12: 'F12', del: 'Delete',
+  });
+
   const handleChordAction = (id) => {
+    if (Object.hasOwn(FN_KEYS, id)) {
+      // F1 to F12 and Delete always go out as key presses, with any lit Ctrl / Alt / Shift.
+      sendChord(takeHeld(), keyForName(FN_KEYS[id]));
+      return true;
+    }
     switch (id) {
       case 'ctrl':
       case 'alt':
         modifiers.toggle(id);
         return true;
+      case 'meta': {
+        // One tap arms Meta for the next key; a second tap soon after sends Meta alone (the Start menu
+        // on Windows), like pressing the key twice on a PC keyboard.
+        const now = Date.now();
+        if (modifiers.meta && now - lastMetaTap <= META_DOUBLE_TAP_MS) {
+          modifiers.toggle('meta');
+          lastMetaTap = 0;
+          commitEnglish()
+            .then(() => ime.commitAll())
+            .then(() => {
+              send([{ keys: [[MODIFIER_CODES.meta, true], [MODIFIER_CODES.meta, false]] }]);
+            })
+            .catch((error) => warn('meta key failed', error));
+        } else {
+          modifiers.toggle('meta');
+          lastMetaTap = now;
+        }
+        return true;
+      }
       case 'esc':
         // Esc first drops an English word being typed; otherwise it goes to the target.
         if (english.word) {
@@ -522,7 +561,10 @@ const install = () => {
         const ch = shift.apply(def.ch);
         ime.text(() => (!shifted && sentenceStartHere() ? ch.toUpperCase() : ch)).then(scheduleRender);
       } else {
-        ime.text(def.ch).then(scheduleRender);
+        // Symbol keys type their shifted character while shift is on (a one-shot shift is used up).
+        const shifted = shift.state !== 'off';
+        if (shifted) shift.apply(def.ch);
+        ime.text(shifted && def.alt ? def.alt : def.ch).then(scheduleRender);
       }
       scheduleRender();
       return;
@@ -587,6 +629,13 @@ const install = () => {
           onEnable: () => setEnabled(true),
           onRecord: diagnostics ? (w) => log(`rec ${JSON.stringify(w)}`) : undefined,
           onGesture: diagnostics ? (record) => log(`gesture ${JSON.stringify(record)}`) : undefined,
+          onKeyDown: () => { if (settings.sound) clicker.play(); },
+          onSoundTap: () => {
+            settings.sound = !settings.sound;
+            saveSettings(settings);
+            if (settings.sound) clicker.play();
+            scheduleRender();
+          },
           onUpdateTap: () => updater.tapIndicator(),
           onUpdateAction: (action) => {
             if (action === 'yes') updater.tapConfirmYes();
@@ -873,6 +922,44 @@ const install = () => {
       return { composing: english.word, sentenceStart: tracker.sentenceStart, autoCapital: autoCapital(), suggestions: currentSuggestions(), output: captured ? [...captured] : null };
     },
     /**
+     * Send one raw key code (press and release), to find the code a key needs on this system.
+     * @param {number} code - Key code
+     * @returns {Promise<void>} Resolves when sent
+     * @example
+     * await __fjk.debug.rawKey(227)
+     */
+    rawKey: async (code) => {
+      send([{ keys: [[code, true], [code, false]] }]);
+      await ime.flush();
+    },
+    /**
+     * Change (and save) the code the Meta key sends.
+     * @param {number} code - Key code from 1 to 255
+     * @returns {number} The code now in use
+     * @example
+     * __fjk.debug.setMetaCode(227)
+     */
+    setMetaCode: (code) => {
+      settings.metaCode = setMetaCode(code);
+      saveSettings(settings);
+      return settings.metaCode;
+    },
+    /**
+     * Tap one key of the QWERTY page by its character (optionally with shift pressed first), for tests.
+     * @param {string} ch - The key's unshifted character
+     * @param {boolean} [withShift=false] - Tap shift first
+     * @returns {Promise<object>} Captured output
+     * @example
+     * await __fjk.debug.tapChar('1', true) // types "!"
+     */
+    tapChar: async (ch, withShift = false) => {
+      if (withShift) shift.tap();
+      const def = PAGES.qwerty.flat().find((k) => k.type === 'char' && k.ch === ch);
+      handleChar(def, 'center');
+      await ime.flush();
+      return { output: captured ? [...captured] : null, shift: shift.state };
+    },
+    /**
      * Tap an English suggestion.
      * @param {number} index - Index in the strip
      * @returns {Promise<object>} English state and captured output
@@ -991,6 +1078,7 @@ const install = () => {
 
   const api = {
     version: VERSION,
+    platform,
     state: 'waiting',
     get enabled() {
       return settings.enabled;

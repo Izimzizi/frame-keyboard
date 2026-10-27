@@ -22,6 +22,8 @@ import { KANA_KEYS } from './kana-table.js';
  * @property {string} [long] - Action fired by a long press instead of the tap action
  * @property {string} [upAction] - Action fired by flicking an action key up (its hint is `up`)
  * @property {boolean} [side] - Styled as a function key
+ * @property {string} [alt] - Character typed instead while shift is on (shown small on the key)
+ * @property {number} [rowH] - On the first key of a row: the row's height relative to a normal row
  */
 
 /**
@@ -56,16 +58,6 @@ const action = (id, label, extra = {}) => ({ type: 'action', id, label, w: 1, si
 const char = (ch, extra = {}) => ({ type: 'char', id: ch, ch, label: ch, w: 1, ...extra });
 
 /**
- * Build a row of letter keys with flick-up characters.
- * @param {string} row - Letters of the row
- * @param {string} ups - Flick-up characters, one per letter
- * @returns {KeyDef[]} Keys
- * @example
- * letters('qw', '12')
- */
-const letters = (row, ups) => Array.from(row).map((ch, i) => char(ch, { up: ups[i], letter: true }));
-
-/**
  * Build a row of plain character keys.
  * @param {ReadonlyArray<string>|string} list - Characters
  * @param {Partial<KeyDef>} [extra] - Extra properties for every key
@@ -76,73 +68,81 @@ const letters = (row, ups) => Array.from(row).map((ch, i) => char(ch, { up: ups[
 const chars = (list, extra = {}) => Array.from(list).map((ch) => char(ch, extra));
 
 /*
- * QWERTY and number pages share one grid: every row adds up to ROW_WIDTH key widths, with ⌫ at the
- * right end of the top row and ⏎ at the right end of the second, so those keys (and the whole bottom
- * row) stay put when the page changes. Letters are 1 wide (the q row has 12 keys: esc, 10 letters, ⌫).
+ * PC-style QWERTY (like the SteamVR keyboard): a short number row on top, then four rows that add
+ * up to ROW_WIDTH key widths each. Symbol keys show what they type with shift pressed (`alt`).
  */
-const ROW_WIDTH = 11.9;
-const ESC_W = 0.8;
-const BACKSPACE_W = 1.1;
-const ENTER_W = 1.6;
-/** Where the a row starts: half a key right of q (esc + 0.5), like a real keyboard. Tab fills it. */
-const A_ROW_INDENT = ESC_W + 0.5;
-/** Left ⇧: the z row starts another half key to the right. */
-const SHIFT_W = A_ROW_INDENT + 0.5;
-
-/** The bottom row shared by the QWERTY and number pages (as on a PC: Ctrl and Alt at the left). */
-const QWERTY_BOTTOM = Object.freeze([
-  action('ctrl', 'ctrl', { w: 1.2 }),
-  action('alt', 'alt', { w: 1.2 }),
-  action('num', '123', { w: 1.3 }),
-  action('space', 'space', { w: 4.6 }),
-  action('left', '←', { w: 0.9, repeat: true }),
-  action('up', '↑', { w: 0.9, repeat: true }),
-  action('down', '↓', { w: 0.9, repeat: true }),
-  action('right', '→', { w: 0.9, repeat: true }),
-]);
+const ROW_WIDTH = 15;
+/** Height of the number row relative to the other rows. */
+const NUMBER_ROW_H = 1;
 
 /**
- * ⌫ for the right end of a top row.
- * @returns {KeyDef} Key definition
+ * Build character keys with the symbol they type while shift is on.
+ * @param {string} row - Unshifted characters
+ * @param {string} alts - Shifted characters, one per key
+ * @returns {KeyDef[]} Keys
  * @example
- * backspaceKey()
+ * symbolKeys('12', '!@')
  */
-const backspaceKey = () => action('backspace', '⌫', { w: BACKSPACE_W, repeat: true });
+const symbolKeys = (row, alts) => Array.from(row).map((ch, i) => char(ch, { alt: alts[i] }));
 
 /**
- * Tab at the left of a second row, like a PC keyboard.
- * @returns {KeyDef} Key definition
+ * Build a row of letter keys.
+ * @param {string} row - Letters of the row
+ * @returns {KeyDef[]} Keys
  * @example
- * tabKey()
+ * letters('qw')
  */
-const tabKey = () => action('tab', 'tab', { w: A_ROW_INDENT });
+const letters = (row) => Array.from(row).map((ch) => char(ch, { letter: true }));
 
 /**
- * ⏎ for the right end of a second row.
- * @returns {KeyDef} Key definition
- * @example
- * enterKey()
- */
-const enterKey = () => action('enter', '⏎', { w: ENTER_W });
-
-/**
- * Give keys equal widths that fill the rest of a row.
- * @param {KeyDef[]} keys - Keys to size
- * @param {number} rest - Width left for them
- * @returns {KeyDef[]} Resized copies
- * @example
- * fill(chars('1234567890'), ROW_WIDTH - BACKSPACE_W)
- */
-const fill = (keys, rest) => keys.map((k) => ({ ...k, w: rest / keys.length }));
-
-/**
- * Copy the shared bottom row, replacing the 123 key.
- * @param {KeyDef} pageKey - Key that takes the place of "123"
+ * The number row of the QWERTY page, with the shifted symbols on the keys.
  * @returns {KeyDef[]} Row
  * @example
- * bottomRow(action('qwerty', 'ABC', { w: 1.3 }))
+ * numberRow()
  */
-const bottomRow = (pageKey) => QWERTY_BOTTOM.map((k) => (k.id === 'num' ? pageKey : k));
+const numberRow = () => [
+  { ...symbolKeys('`', '~')[0], rowH: NUMBER_ROW_H },
+  ...symbolKeys('1234567890', '!@#$%^&*()'),
+  ...symbolKeys('-=', '_+'),
+  action('backspace', '⌫', { w: 2, repeat: true }),
+];
+
+/**
+ * The four rows under the number row.
+ * @returns {KeyDef[][]} Rows
+ * @example
+ * mainRows().length // 4
+ */
+const mainRows = () => [
+  [
+    action('tab', 'tab', { w: 1.5 }),
+    ...letters('qwertyuiop'),
+    ...symbolKeys('[]', '{}'),
+    char('\\', { alt: '|', w: 1.5 }),
+  ],
+  [
+    action('del', 'del', { w: 1.75, repeat: true }),
+    ...letters('asdfghjkl'),
+    ...symbolKeys(';\'', ':"'),
+    action('enter', '⏎', { w: 2.25 }),
+  ],
+  [
+    action('shift', '⇧', { w: 2.25 }),
+    ...letters('zxcvbnm'),
+    ...symbolKeys(',./', '<>?'),
+    action('shift', '⇧', { w: 2.75 }),
+  ],
+  [
+    action('ctrl', 'ctrl', { w: 1.5 }),
+    action('meta', 'meta', { w: 1.5 }),
+    action('alt', 'alt', { w: 1.5 }),
+    action('space', 'space', { w: 6.5 }),
+    action('left', '←', { repeat: true }),
+    action('up', '↑', { repeat: true }),
+    action('down', '↓', { repeat: true }),
+    action('right', '→', { repeat: true }),
+  ],
+];
 
 /**
  * Whether a key shows the flick guide while pressed: kana and character keys, and action keys with
@@ -190,32 +190,7 @@ export const PAGES = Object.freeze({
     [action('symbols', '☺記'), kana('ma'), kana('ya'), kana('ra'), action('space', '空白')],
     [action('mode', 'あA', { long: 'stock' }), action('modify', '゛゜小', { w: 1.35, side: false }), kana('wa'), kana('punct'), action('enter', '⏎')],
   ],
-  // 11 key widths per row: Esc takes one at the left of the q row, and the rows below keep the
-  // same key size (a sits half a key right of q, z a whole key).
-  qwerty: [
-    [action('esc', 'esc', { w: ESC_W }), ...letters('qwertyuiop', '1234567890'), backspaceKey()],
-    [tabKey(), ...letters('asdfghjkl', '@#$%&-+()'), enterKey()],
-    [
-      action('shift', '⇧', { w: SHIFT_W }),
-      ...letters('zxcvbnm', '*"\':;!?'),
-      char(',', { up: '!' }),
-      char('.', { up: '?' }),
-      action('shift', '⇧', { w: ROW_WIDTH - SHIFT_W - 9 }),
-    ],
-    [...QWERTY_BOTTOM],
-  ],
-  num: [
-    [...fill(chars('1234567890'), ROW_WIDTH - BACKSPACE_W), backspaceKey()],
-    [tabKey(), ...fill(chars('@#$%&-+()/'), ROW_WIDTH - A_ROW_INDENT - ENTER_W), enterKey()],
-    [action('num2', '#+=', { w: SHIFT_W }), ...fill(chars('*"\':;!?,.'), ROW_WIDTH - SHIFT_W)],
-    bottomRow(action('qwerty', 'ABC', { w: 1.3 })),
-  ],
-  num2: [
-    [...fill(chars('[]{}#%^*+='), ROW_WIDTH - BACKSPACE_W), backspaceKey()],
-    [tabKey(), ...fill(chars('_\\|~<>`€£¥'), ROW_WIDTH - A_ROW_INDENT - ENTER_W), enterKey()],
-    [action('num', '123', { w: SHIFT_W }), ...fill(chars('.,?!\'/:'), ROW_WIDTH - SHIFT_W)],
-    bottomRow(action('qwerty', 'ABC', { w: 1.3 })),
-  ],
+  qwerty: [numberRow(), ...mainRows()],
   sym1: symbolPage(SYMBOLS_1),
   sym2: symbolPage(SYMBOLS_2),
 });
