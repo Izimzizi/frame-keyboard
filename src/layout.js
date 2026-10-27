@@ -129,15 +129,6 @@ const mainRows = () => [
   ],
 ];
 
-/**
- * Whether a key shows the key-preview bubble while pressed (character keys only).
- * @param {KeyDef} def - Key definition
- * @returns {boolean} True when the preview is shown
- * @example
- * hasKeyPreview(PAGES.qwerty[1][1]) // true (q)
- */
-export const hasKeyPreview = (def) => def.type === 'char';
-
 /** @type {Readonly<Record<'qwerty', ReadonlyArray<ReadonlyArray<KeyDef>>>>} */
 export const PAGES = Object.freeze({
   qwerty: [numberRow(), ...mainRows()],

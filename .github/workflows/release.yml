@@ -31,7 +31,8 @@ jobs:
           chmod 755 stage/frame-keyboard/install.sh stage/frame-keyboard/frame_keyboard_injector.py
           tar --owner=0 --group=0 --numeric-owner -czf "$name.tar.gz" -C stage frame-keyboard
           mkdir -p stage/frame-keyboard-windows
-          cp dist/bundle.js windows/frame_keyboard_injector.ps1 windows/install.ps1 windows/install.cmd              README.md LICENSE stage/frame-keyboard-windows/
+          cp dist/bundle.js windows/frame_keyboard_injector.ps1 windows/frame_keyboard_launcher.vbs windows/install.ps1 windows/install.cmd \
+             README.md LICENSE stage/frame-keyboard-windows/
           (cd stage && zip -qr "../$name-windows.zip" frame-keyboard-windows)
           sha256sum "$name.tar.gz" "$name-windows.zip" > SHA256SUMS
       - name: Publish

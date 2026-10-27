@@ -20,6 +20,8 @@ CDP endpoint (default: http://127.0.0.1:8080).
 Inject (or re-inject) once and exit.
 .PARAMETER NoConsole
 Do not forward [fjk] console lines.
+.PARAMETER Console
+Also print the log lines to the console (always on with -Once).
 .PARAMETER LogFile
 Log file (default: %LOCALAPPDATA%\frame-keyboard\injector.log).
 #>
@@ -28,6 +30,7 @@ param(
     [string]$DevTools = 'http://127.0.0.1:8080',
     [switch]$Once,
     [switch]$NoConsole,
+    [switch]$Console,
     [string]$LogFile = (Join-Path $env:LOCALAPPDATA 'frame-keyboard\injector.log')
 )
 
@@ -49,7 +52,7 @@ if ((Test-Path $LogFile) -and ((Get-Item $LogFile).Length -gt 1MB)) { Remove-Ite
 
 function Write-Log([string]$Message) {
     $line = '{0:yyyy-MM-dd HH:mm:ss} {1}' -f (Get-Date), $Message
-    Write-Host $line
+    if ($Console -or $Once) { Write-Host $line }
     try { Add-Content -Path $LogFile -Value $line -Encoding UTF8 } catch { }
 }
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { CLIPBOARD_CHORDS, MODIFIER_CODES, createModifiers, keyForChar, keyForName, planChord, setMetaCode } from '../src/key-chords.js';
 import { planCalls } from '../src/output-plan.js';
 import { releaseHeldKeys, sendKeyEvents } from '../src/steam.js';
-import { PAGES, hasKeyPreview } from '../src/layout.js';
+import { PAGES } from '../src/layout.js';
 
 test('chords: letters, digits and US punctuation map to their keys', () => {
   assert.deepEqual(keyForChar('a'), { code: 4, shift: false });
@@ -160,11 +160,4 @@ test('layout: symbol keys carry the character they type with shift', () => {
     assert.equal(keyForChar(shifted).code, keyForChar(ch).code, ch);
     assert.equal(keyForChar(shifted).shift, true, ch);
   }
-});
-
-test('layout: letter keys show the key preview; action keys (arrows included) do not', () => {
-  const keys = PAGES.qwerty.flat();
-  const byId = (id) => keys.find((k) => k.id === id);
-  assert.ok(hasKeyPreview(byId('q')));
-  for (const id of ['del', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasKeyPreview(byId(id)), false, id);
 });

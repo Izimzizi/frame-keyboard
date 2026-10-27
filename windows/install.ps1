@@ -12,7 +12,7 @@ What it does, without administrator rights:
   1. Creates an empty .cef-enable-remote-debugging next to steam.exe. Steam then opens its
      debugging port on 127.0.0.1:8080 (local only) the next time it starts.
   2. Copies bundle.js and the injector to %LOCALAPPDATA%\frame-keyboard.
-  3. Registers a Scheduled Task "frame-keyboard" that runs the injector hidden at every logon. The
+  3. Registers a Scheduled Task "frame-keyboard" that runs the injector (through a tiny VBScript launcher, so no window appears) at every logon. The
      injector waits for Steam and injects the keyboard again after every Steam restart.
 
 Files are taken from this folder (the release archive) or from the repository layout
@@ -29,6 +29,7 @@ $TaskName = 'frame-keyboard'
 $InstallDir = Join-Path $env:LOCALAPPDATA 'frame-keyboard'
 $FlagName = '.cef-enable-remote-debugging'
 $Injector = 'frame_keyboard_injector.ps1'
+$Launcher = 'frame_keyboard_launcher.vbs'
 
 function Get-SteamDir {
     $candidates = @()
@@ -88,6 +89,8 @@ if (-not $bundle) {
 }
 $injectorSource = Join-Path $PSScriptRoot $Injector
 if (-not (Test-Path $injectorSource)) { throw "$Injector not found next to install.ps1." }
+$launcherSource = Join-Path $PSScriptRoot $Launcher
+if (-not (Test-Path $launcherSource)) { throw "$Launcher not found next to install.ps1." }
 
 # 1. Let Steam open its debugging port.
 $flag = Join-Path $steamDir $FlagName
@@ -99,12 +102,12 @@ Stop-Injector
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 Copy-Item $bundle (Join-Path $InstallDir 'bundle.js') -Force
 Copy-Item $injectorSource (Join-Path $InstallDir $Injector) -Force
+Copy-Item $launcherSource (Join-Path $InstallDir $Launcher) -Force
 
 # 3. Start the injector at every logon, hidden, without administrator rights.
 $injectorPath = Join-Path $InstallDir $Injector
-$bundlePath = Join-Path $InstallDir 'bundle.js'
-$arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$injectorPath`" -Bundle `"$bundlePath`""
-$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
+$launcherPath = Join-Path $InstallDir $Launcher
+$action = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "//B //Nologo `"$launcherPath`""
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User "$env:USERDOMAIN\$env:USERNAME"
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
     -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 5 -RestartInterval (New-TimeSpan -Minutes 1) -Hidden
@@ -116,7 +119,7 @@ Start-ScheduledTask -TaskName $TaskName
 Write-Host ''
 Write-Host 'frame-keyboard is installed and injects itself whenever Steam runs.'
 Write-Host "  Log:        $env:LOCALAPPDATA\frame-keyboard\injector.log"
-Write-Host "  Re-inject:  powershell -File `"$injectorPath`" -Once"
+Write-Host "  Re-inject:  powershell -File `"$injectorPath`" -Once -Bundle `"$InstallDir\bundle.js`""
 Write-Host "  Uninstall:  powershell -File `"$PSScriptRoot\install.ps1`" -Uninstall"
 
 if ($RestartSteam) {

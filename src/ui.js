@@ -10,12 +10,12 @@
 // the popup offers SteamClient.OpenVR.VROverlay.RegisterForCursorMovement.
 //
 // Layout: a one-row strip with the close button, Esc and F1 to F12, the click sound toggle and
-// "Steam ⌨" on top, and the QWERTY keys under it, using the full width.
+// "Steam" on top, and the QWERTY keys under it, using the full width.
 import { createCursorTracker } from './cursor-tracker.js';
 import { createInputRecorder } from './input-recorder.js';
 import { createIcon, hasIcon } from './icons.js';
 import { detectPlatform, metaIconFor } from './platform.js';
-import { PAGES, hasKeyPreview } from './layout.js';
+import { PAGES } from './layout.js';
 import { OVERLAY_CSS } from './styles.js';
 import { createStockGuard } from './stock-guard.js';
 
@@ -28,17 +28,6 @@ const BAR_TAP_SLOP = 12;
 const RELEASE_WAIT_MS = 25;
 /** Ignore mouse presses this soon after a touch, in case the platform also emits mouse events. */
 const MOUSE_AFTER_TOUCH_MS = 600;
-
-/**
- * Clamp a number into a range.
- * @param {number} value - Value
- * @param {number} min - Lower bound
- * @param {number} max - Upper bound (wins when smaller than min)
- * @returns {number} Clamped value
- * @example
- * clamp(5, 0, 3) // 3
- */
-const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 /**
  * Create an element in the given document with a class and optional text.
@@ -128,7 +117,8 @@ export const mountOverlay = (doc, handlers) => {
   closeEl.append(createIcon(doc, 'close'));
   const soundEl = el(doc, 'div', 'fjk-sound', '♪');
   soundEl.title = 'Key click sound';
-  const stockEl = el(doc, 'div', 'fjk-stock', 'Steam ⌨');
+  const stockEl = el(doc, 'div', 'fjk-stock', 'Steam');
+  stockEl.append(createIcon(doc, 'keyboard'));
   stockEl.title = 'Switch to the stock Steam keyboard';
   // Esc and F1 to F12: small keys in the strip (they go out as key presses, with any armed modifier).
   const fKeysEl = el(doc, 'div', 'fjk-fkeys');
@@ -141,12 +131,10 @@ export const mountOverlay = (doc, handlers) => {
   stripEl.append(closeEl, fKeysEl, soundEl, stockEl);
   const pagesEl = el(doc, 'div', 'fjk-pages');
   root.append(stripEl, pagesEl);
-  const preview = el(doc, 'div', 'fjk-preview');
-  preview.hidden = true;
-  const reenable = el(doc, 'div', 'fjk-reenable', '⌨');
+  const reenable = el(doc, 'div', 'fjk-reenable');
   reenable.title = 'frame-keyboard';
+  reenable.append(createIcon(doc, 'keyboard'));
 
-  root.append(preview);
   shadow.append(style, root, reenable);
 
   /** @type {WeakMap<Element, KeyDef>} */
@@ -266,34 +254,6 @@ export const mountOverlay = (doc, handlers) => {
   }
 
   /**
-   * Show a bubble with the key's character above the pressed key.
-   * @param {HTMLElement} keyEl - The pressed key
-   * @param {KeyDef} def - Its definition
-   * @returns {void}
-   * @example
-   * showPreview(keyEl, def)
-   */
-  const showPreview = (keyEl, def) => {
-    const text = keyEl.querySelector('.fjk-label')?.textContent || def.label;
-    const rootRect = root.getBoundingClientRect();
-    const keyRect = keyEl.getBoundingClientRect();
-    const step = Math.min(keyRect.width, keyRect.height);
-    const size = step * 0.94;
-    // Keep the whole bubble inside the overlay.
-    const cx = clamp(keyRect.left + keyRect.width / 2 - rootRect.left, step * 0.5, rootRect.width - step * 0.5);
-    const cy = clamp(keyRect.top + keyRect.height / 2 - rootRect.top, step * 1.5, rootRect.height - step * 0.5);
-    preview.textContent = text;
-    preview.style.fontSize = `${Math.round(size * 0.62)}px`;
-    Object.assign(preview.style, {
-      width: `${size}px`,
-      height: `${size}px`,
-      left: `${cx - size / 2}px`,
-      top: `${cy - size / 2}px`,
-    });
-    preview.hidden = false;
-  };
-
-  /**
    * End the current gesture without firing anything.
    * @returns {void}
    * @example
@@ -305,7 +265,6 @@ export const mountOverlay = (doc, handlers) => {
     clearInterval(gesture.timer);
     gesture.keyEl?.classList.remove('fjk-pressed');
     gesture.barTarget?.classList.remove('fjk-pressed');
-    preview.hidden = true;
     gesture = null;
   };
 
@@ -321,7 +280,6 @@ export const mountOverlay = (doc, handlers) => {
    * startGesture(event.target, 10, 20, 'touch', 0)
    */
   const startGesture = (target, x, y, source, id) => {
-    preview.hidden = true;
     let presser = null;
     let startCursors;
     if (source === 'touch' && cursorHandle) {
@@ -353,7 +311,6 @@ export const mountOverlay = (doc, handlers) => {
     g.instant = true;
     if (def.type === 'char') {
       handlers.onChar(def);
-      showPreview(keyEl, def);
     } else {
       handlers.onAction(def.id);
     }

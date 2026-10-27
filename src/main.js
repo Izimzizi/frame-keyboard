@@ -557,6 +557,28 @@ const install = () => {
       return result;
     },
     /**
+     * List the Steam client functions that could give controller haptic feedback (names only), to
+     * find out whether a hover pulse like the stock keyboard's is possible. Needs the keyboard popup.
+     * @returns {object|null} Function names per object, or null without a popup
+     * @example
+     * __fjk.debug.haptics()
+     */
+    haptics: () => {
+      const win = getKeyboardPopupWindow();
+      if (!win) return null;
+      const client = win.SteamClient;
+      const found = {};
+      for (const [label, target] of [['OpenVR', client?.OpenVR], ['OpenVR.VROverlay', client?.OpenVR?.VROverlay], ['Input', client?.Input], ['Controller', client?.Controller]]) {
+        if (!target) continue;
+        const names = new Set();
+        for (let obj = target; obj && obj !== Object.prototype; obj = Object.getPrototypeOf(obj)) {
+          for (const name of Object.getOwnPropertyNames(obj)) if (/haptic|vibrat|rumble|pulse/i.test(name)) names.add(name);
+        }
+        found[label] = [...names];
+      }
+      return found;
+    },
+    /**
      * Laser cursors and recent key gestures (numbers only).
      * @returns {object|null} Info, or null when no overlay is mounted
      * @example

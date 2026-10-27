@@ -1,4 +1,5 @@
 // Key click feedback: a very short synthesized tick (no audio files), played with Web Audio.
+import { log, warn } from './log.js';
 
 /**
  * Create the click player. The audio context is made on the first click, because browsers only
@@ -12,26 +13,35 @@
 export const createClickSound = (getWindow) => {
   /** @type {AudioContext|null} */
   let audio = null;
+  /** @type {Window|null|undefined} The window the context was made in. */
+  let audioWindow = null;
   let failed = false;
 
   /**
-   * Get the audio context, creating it on first use.
+   * Get the audio context, creating it on first use. The keyboard popup can be closed and recreated
+   * by Steam; a context made in an old popup is dead, so a new one is made for the current window.
    * @returns {AudioContext|null} The context, or null when audio is unavailable
    * @example
    * ensure()
    */
   const ensure = () => {
-    if (audio || failed) return audio;
     const win = getWindow?.();
+    if (audio && audioWindow === win && audio.state !== 'closed') return audio;
+    if (failed && audioWindow === win) return null;
     const Context = win?.AudioContext ?? win?.webkitAudioContext ?? globalThis.AudioContext;
+    audio = null;
+    audioWindow = win;
+    failed = false;
     if (!Context) {
       failed = true;
       return null;
     }
     try {
       audio = new Context();
-    } catch {
+      log(`click sound: audio context ready (${audio.state})`);
+    } catch (error) {
       failed = true;
+      warn('click sound: no audio context', error);
     }
     return audio;
   };

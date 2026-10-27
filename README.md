@@ -31,7 +31,7 @@ Download `frame-keyboard-<version>-windows.zip` from the [Releases page](https:/
 
 1. creates an empty `.cef-enable-remote-debugging` file next to `steam.exe`, which makes Steam open its debugging port (`127.0.0.1:8080`, reachable only from this PC) the next time it starts;
 2. copies the files to `%LOCALAPPDATA%\frame-keyboard`;
-3. registers a Scheduled Task named `frame-keyboard` that runs the injector hidden at every logon and injects the keyboard again after every Steam restart.
+3. registers a Scheduled Task named `frame-keyboard` that runs the injector with no window at every logon and injects the keyboard again after every Steam restart.
 
 **Restart Steam once afterwards** (or run `install.ps1 -RestartSteam`). The log is `%LOCALAPPDATA%\frame-keyboard\injector.log`. To remove it, run `install.ps1 -Uninstall` (add `-RemoveFlag` to delete the `.cef-enable-remote-debugging` file too) and restart Steam.
 

@@ -6,7 +6,7 @@
 //
 // Geometry of the 854 x 239 key panel (minimal mode):
 //   padding 3 px top/bottom, 4 px left/right -> content 846 x 233
-//   strip: 26 px (close, Esc and F1 to F12, click sound, Steam ⌨) + 3 px gap
+//   strip: 26 px (close, Esc and F1 to F12, click sound, Steam) + 3 px gap
 //   key rows: a short number row and four rows, full width, with 3 px gaps
 
 export const OVERLAY_CSS = `
@@ -25,9 +25,10 @@ export const OVERLAY_CSS = `
   flex: 0 0 auto; margin-left: auto; padding: 2px 10px; border-radius: 11px;
   font-size: 13px; color: var(--dim); border: 1px solid var(--side-edge);
 }
+.fjk-stock .fjk-icon { width: 15px; height: 15px; margin-left: 5px; }
 .fjk-stock.fjk-pressed { background: var(--pressed); color: var(--text); }
 
-/* Strip above the keys: close | Esc and F1 to F12 | click sound, Steam ⌨. Small, to leave the room to the keys. */
+/* Strip above the keys: close | Esc and F1 to F12 | click sound, Steam. Small, to leave the room to the keys. */
 .fjk-strip {
   flex: 0 0 26px; height: 26px; min-height: 0; display: flex; align-items: stretch; gap: 6px;
   border-bottom: 1px solid #33363b;
@@ -85,17 +86,10 @@ export const OVERLAY_CSS = `
 .fjk-row:first-child .fjk-key { font-size: 20px; }
 .fjk-row:first-child .fjk-up { top: 1px; right: 4px; font-size: 11px; }
 
-/* Key preview: the pressed key's character, highlighted over the key. */
-.fjk-preview {
-  position: absolute; display: flex; align-items: center; justify-content: center; pointer-events: none;
-  border-radius: 8px; background: var(--accent); color: var(--accent-text); font-size: 30px;
-  border: 1px solid var(--accent); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6); transform: scale(1.08);
-}
-
 .fjk-reenable {
   position: absolute; right: 2px; top: 2px; width: 44px; height: 26px; border-radius: 13px;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(138, 180, 248, 0.9); color: #0b1b33; font-size: 15px; font-weight: 700; cursor: pointer;
-  font-family: "Motiva Sans", sans-serif; touch-action: none;
+  background: rgba(138, 180, 248, 0.9); color: #0b1b33; cursor: pointer; touch-action: none;
 }
+.fjk-reenable .fjk-icon { width: 22px; height: 22px; }
 `;
