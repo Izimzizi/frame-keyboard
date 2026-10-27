@@ -1,0 +1,39 @@
+name: Release
+
+# Push a tag such as v1.0.0 to build the bundle and publish a release with the archive attached.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Check the tag matches package.json
+        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm run build
+      - name: Package
+        run: |
+          name="frame-keyboard-${GITHUB_REF_NAME#v}"
+          mkdir -p "stage/frame-keyboard"
+          cp dist/bundle.js injector/frame_keyboard_injector.py contrib/frame-keyboard.service \
+             install.sh README.md LICENSE "stage/frame-keyboard/"
+          chmod 755 stage/frame-keyboard/install.sh stage/frame-keyboard/frame_keyboard_injector.py
+          tar --owner=0 --group=0 --numeric-owner -czf "$name.tar.gz" -C stage frame-keyboard
+          sha256sum "$name.tar.gz" > SHA256SUMS
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" frame-keyboard-*.tar.gz SHA256SUMS \
+            --title "frame-keyboard ${GITHUB_REF_NAME#v}" --generate-notes

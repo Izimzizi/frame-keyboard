@@ -20,12 +20,24 @@ A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keybo
 
 - A Steam Frame (or a SteamOS / Linux machine running Steam) with **developer mode** enabled. Developer mode makes Steam open a local-only debugging port, `127.0.0.1:8080`, which is what the keyboard uses.
 - `python3` with `aiohttp` (already present on the Frame).
-- Node.js and npm, to build the bundle from the source when installing. If you cannot install them on the device, build on another machine (see [Building](#building)) and copy `dist/bundle.js` next to `install.sh`.
+- Node.js and npm only if you install from the source instead of a release.
 - No `sudo` is needed.
 
 ## Install
 
-On the device (for example in Konsole):
+### From a release (recommended)
+
+On the device (for example in Konsole), download the latest archive from the [Releases page](https://github.com/Izimzizi/frame-keyboard/releases), then:
+
+```sh
+tar xzf frame-keyboard-*.tar.gz
+cd frame-keyboard
+./install.sh
+```
+
+The archive already contains the built bundle, so Node.js is not needed. Releases are built by GitHub Actions from a version tag; `SHA256SUMS` is attached for checking the download.
+
+### From the source
 
 ```sh
 git clone https://github.com/Izimzizi/frame-keyboard.git
@@ -33,7 +45,9 @@ cd frame-keyboard
 ./install.sh
 ```
 
-`install.sh` builds the bundle if there is none, copies the files to `~/.local/share/frame-keyboard`, and installs and starts a systemd **user** service named `frame-keyboard`. The service waits for Steam, injects the keyboard, and injects it again after every Steam restart. Run `./install.sh` again at any time to update. A leftover install of the earlier `frame-jp-keyboard` is removed automatically.
+From a checkout `install.sh` builds the bundle first, which needs Node.js and npm (or build elsewhere, see [Building](#building), and put `dist/bundle.js` next to `install.sh`).
+
+`install.sh` copies the files to `~/.local/share/frame-keyboard`, and installs and starts a systemd **user** service named `frame-keyboard`. The service waits for Steam, injects the keyboard, and injects it again after every Steam restart. Run the install again from a newer release to update. A leftover install of the earlier `frame-jp-keyboard` is removed automatically.
 
 Useful commands:
 

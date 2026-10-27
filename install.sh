@@ -4,8 +4,8 @@
 #   ./install.sh               build (if needed), install, then (re)start
 #   ./install.sh --uninstall   stop and remove (restart Steam afterwards to fully unload)
 #
-# The bundle is built from src/ with `npm run build` (needs Node.js and npm). If dist/bundle.js or
-# a bundle.js next to this script already exists, it is used as is and nothing is built.
+# The release archive contains a ready-made bundle.js, which is used as is. From a repository
+# checkout there is none, so it is built from src/ with `npm run build` (needs Node.js and npm).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -58,14 +58,19 @@ if [ -z "$bundle" ]; then
     bundle="$here/dist/bundle.js"
 fi
 
-injector="$here/injector/frame_keyboard_injector.py"
-service="$here/contrib/$unit"
-for file in "$injector" "$service"; do
-    if [ ! -f "$file" ]; then
-        echo "Missing file: $file" >&2
-        exit 1
-    fi
+# Repository layout (injector/, contrib/) or all files side by side (the release archive).
+injector=""
+service=""
+for candidate in "$here/injector/frame_keyboard_injector.py" "$here/frame_keyboard_injector.py"; do
+    [ -f "$candidate" ] && injector=$candidate && break
 done
+for candidate in "$here/contrib/$unit" "$here/$unit"; do
+    [ -f "$candidate" ] && service=$candidate && break
+done
+if [ -z "$injector" ] || [ -z "$service" ]; then
+    echo "Missing frame_keyboard_injector.py or $unit next to install.sh." >&2
+    exit 1
+fi
 
 remove_legacy
 mkdir -p "$share_dir" "$unit_dir"
