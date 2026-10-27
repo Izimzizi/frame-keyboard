@@ -1,8 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createShift } from '../src/shift.js';
-import { createKeyboardState, toMode } from '../src/keyboard-state.js';
-import { PAGES, SYMBOLS_1, SYMBOLS_2 } from '../src/layout.js';
+import { PAGES } from '../src/layout.js';
 import { normalizeSettings } from '../src/settings.js';
 
 test('shift: tap once is one capital', () => {
@@ -28,55 +27,19 @@ test('shift: a slow second tap turns shift off', () => {
   assert.equal(s.tap(2000), 'off');
 });
 
-test('pages: あA toggles modes, temporary pages go back', () => {
-  const p = createKeyboardState('kana');
-  assert.equal(p.page, 'kana');
-  p.show('sym1');
-  assert.equal(p.back(), 'kana');
-  assert.equal(p.toggleMode(), 'qwerty');
-  assert.equal(p.page, 'qwerty');
-  p.show('num');
-  p.show('num2');
-  assert.equal(p.back(), 'qwerty');
-  p.show('sym2');
-  assert.equal(p.toggleMode(), 'kana');
-  assert.equal(p.page, 'kana');
-  assert.equal(toMode('nonsense'), 'kana');
-  assert.equal(createKeyboardState('qwerty').page, 'qwerty');
-});
-
-test('layouts: every page has 4 rows (QWERTY has 5) and symbol pages are full', () => {
-  for (const [id, rows] of Object.entries(PAGES)) {
-    assert.equal(rows.length, id === 'qwerty' ? 5 : 4, id);
-    for (const row of rows) {
-      for (const key of row) assert.ok(key.w > 0, `${id} ${key.id}`);
-    }
+test('layout: QWERTY is the only page and has 5 rows', () => {
+  assert.deepEqual(Object.keys(PAGES), ['qwerty']);
+  assert.equal(PAGES.qwerty.length, 5);
+  for (const row of PAGES.qwerty) {
+    for (const key of row) assert.ok(key.w > 0, key.id);
   }
-  assert.equal(SYMBOLS_1.length, 32);
-  assert.equal(SYMBOLS_2.length, 32);
-  for (const ch of '「」『』・…ー〜！？：；（）') assert.ok(SYMBOLS_1.includes(ch), ch);
-  for (const ch of '＠＃％＆＊＋＝／￥') assert.ok([...SYMBOLS_1, ...SYMBOLS_2].includes(ch), ch);
 });
 
-test('layouts: the English pages have no あA key and the kana page matches the design', () => {
-  for (const [id, rows] of Object.entries(PAGES)) {
-    const hasMode = rows.flat().some((k) => k.id === 'mode');
-    assert.equal(hasMode, id !== 'qwerty', id);
-  }
-  const labels = PAGES.kana.map((row) => row.map((k) => k.label).join(' '));
-  assert.deepEqual(labels, [
-    '↶ あ か さ ⌫',
-    '← た な は →',
-    '☺記 ま や ら 空白',
-    'あA ゛゜小 わ 、。?! ⏎',
-  ]);
-});
-
-test('settings: English-only build is always QWERTY and never checks for updates', () => {
-  assert.equal(normalizeSettings({ mode: 'kana' }).mode, 'qwerty');
-  assert.equal(normalizeSettings({ mode: 'x' }).mode, 'qwerty');
-  assert.equal(normalizeSettings({ updateCheck: true }).updateCheck, false);
+test('settings: defaults, and unknown or mistyped values are dropped', () => {
   assert.equal(normalizeSettings({}).sound, true);
   assert.equal(normalizeSettings({ sound: false }).sound, false);
-  assert.equal(normalizeSettings({}).conversion, true);
+  assert.equal(normalizeSettings({ sound: 'no' }).sound, true);
+  assert.equal(normalizeSettings({ metaCode: 227 }).metaCode, 227);
+  assert.equal('conversion' in normalizeSettings({ conversion: false }), false);
+  assert.equal(normalizeSettings(null).autoCapitalize, false);
 });

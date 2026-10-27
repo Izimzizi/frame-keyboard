@@ -3,29 +3,29 @@ import assert from 'node:assert/strict';
 import { graphemes, planCalls } from '../src/output-plan.js';
 
 test('minimal mode: a run of non-ASCII text is one call (one keymap swap in gamescope)', () => {
-  assert.deepEqual(planCalls([{ text: 'てすとです' }], { buffered: false }), ['てすとです']);
-  assert.deepEqual(planCalls([{ text: '今日はいい天気' }], { buffered: false }), ['今日はいい天気']);
+  assert.deepEqual(planCalls([{ text: 'îïôöï' }], { buffered: false }), ['îïôöï']);
+  assert.deepEqual(planCalls([{ text: 'ûüçññãõ' }], { buffered: false }), ['ûüçññãõ']);
 });
 
 test('minimal mode: ASCII stays one call per character; runs split around it', () => {
   assert.deepEqual(planCalls([{ text: 'hello ' }], { buffered: false }), ['h', 'e', 'l', 'l', 'o', ' ']);
-  assert.deepEqual(planCalls([{ text: 'Aあいb' }], { buffered: false }), ['A', 'あい', 'b']);
-  assert.deepEqual(planCalls([{ text: 'です。' }], { buffered: false }), ['です。']);
+  assert.deepEqual(planCalls([{ text: 'Aëñb' }], { buffered: false }), ['A', 'ëñ', 'b']);
+  assert.deepEqual(planCalls([{ text: 'öï…' }], { buffered: false }), ['öï…']);
 });
 
 test('keys stay separate calls, in order', () => {
-  const ops = [{ key: 'Backspace' }, { key: 'Backspace' }, { text: 'はい' }, { key: 'Enter' }];
-  assert.deepEqual(planCalls(ops, { buffered: false }), ['Backspace', 'Backspace', 'はい', 'Enter']);
+  const ops = [{ key: 'Backspace' }, { key: 'Backspace' }, { text: 'çñ' }, { key: 'Enter' }];
+  assert.deepEqual(planCalls(ops, { buffered: false }), ['Backspace', 'Backspace', 'çñ', 'Enter']);
 });
 
 test('buffered mode: one grapheme per call (the VR buffer moves its cursor by one per call)', () => {
-  assert.deepEqual(planCalls([{ text: 'かんじ' }], { buffered: true }), ['か', 'ん', 'じ']);
+  assert.deepEqual(planCalls([{ text: 'éèê' }], { buffered: true }), ['é', 'è', 'ê']);
   assert.deepEqual(planCalls([{ text: 'a👍🏽' }], { buffered: true }), ['a', '👍🏽']);
 });
 
 test('graphemes keep combined characters together', () => {
-  assert.deepEqual(graphemes('が'), ['が']);
-  assert.deepEqual(graphemes('か\u3099'), ['か\u3099']);
+  assert.deepEqual(graphemes('á'), ['á']);
+  assert.deepEqual(graphemes('é\u3099'), ['é\u3099']);
   assert.equal(graphemes('👍🏽').length, 1);
 });
 
@@ -38,16 +38,16 @@ test('createOutput: a commit is one HandleVirtualKeyDown call; buffered mode spa
   try {
     let buffered = false;
     const send = createOutput(() => ({ buffered }));
-    send([{ text: 'てすとです' }]);
+    send([{ text: 'îïôöï' }]);
     send([{ key: 'Backspace' }, { text: 'ok' }]);
     await new Promise((r) => setTimeout(r, 10));
-    assert.deepEqual(calls, ['てすとです', 'Backspace', 'o', 'k']);
+    assert.deepEqual(calls, ['îïôöï', 'Backspace', 'o', 'k']);
     calls.length = 0;
     buffered = true;
-    send([{ text: 'かな' }]);
-    send([{ text: 'だ' }]);
+    send([{ text: 'éà' }]);
+    send([{ text: 'í' }]);
     await new Promise((r) => setTimeout(r, 200));
-    assert.deepEqual(calls, ['か', 'な', 'だ']);
+    assert.deepEqual(calls, ['é', 'à', 'í']);
   } finally {
     globalThis.SteamUIStore = saved;
   }
@@ -62,9 +62,9 @@ test('a commit and the Enter after it go out at once, one call per run', async (
   try {
     const send = createOutput(() => ({ buffered: false, }));
     const t0 = performance.now();
-    send([{ text: 'てすとです' }, { key: 'Enter' }]);
+    send([{ text: 'îïôöï' }, { key: 'Enter' }]);
     await new Promise((r) => setTimeout(r, 10));
-    assert.deepEqual(calls, ['てすとです', 'Enter']);
+    assert.deepEqual(calls, ['îïôöï', 'Enter']);
     assert.ok(performance.now() - t0 < 100);
   } finally {
     globalThis.SteamUIStore = saved;
@@ -97,9 +97,9 @@ test('createOutput: Enter for another window skips a Steam UI field\'s Enter hoo
   try {
     let vrStatus = { bIsOpen: true, bMinimal: true, sOverlayKey: 'gamescope.gamescope-0.window.72', unAppID: 0 };
     const send = createOutput(() => ({ buffered: false, vrStatus }));
-    send([{ text: 'かんじ' }, { key: 'Enter' }]);
+    send([{ text: 'éèê' }, { key: 'Enter' }]);
     await new Promise((r) => setTimeout(r, 20));
-    assert.deepEqual(calls.splice(0), [['hvkd', 'かんじ'], ['dispatch', 'Enter']]);
+    assert.deepEqual(calls.splice(0), [['hvkd', 'éèê'], ['dispatch', 'Enter']]);
     vrStatus = { ...vrStatus, sOverlayKey: 'valve.steam.gamepadui.main' };
     send([{ key: 'Enter' }]);
     await new Promise((r) => setTimeout(r, 20));

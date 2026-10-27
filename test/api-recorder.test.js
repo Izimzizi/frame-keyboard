@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { describe, installApiRecorder } from '../src/api-recorder.js';
 
 test('arguments are described without their text', () => {
-  assert.equal(describe('かんじ'), 'text:3:non-ascii');
+  assert.equal(describe('éèê'), 'text:3:non-ascii');
   assert.equal(describe('ab'), 'text:2:ascii');
-  assert.equal(describe('aあ'), 'text:2:mixed');
+  assert.equal(describe('aë'), 'text:2:mixed');
   assert.equal(describe('Enter'), 'Enter');
   assert.equal(describe('\n'), '\\n');
   assert.equal(describe(false), false);
@@ -34,17 +34,17 @@ test('calls are logged, forwarded unchanged, and uninstall restores the original
     client,
   });
   assert.equal(rec.count, 2);
-  assert.equal(manager.HandleVirtualKeyDown('かな', false), 'r');
+  assert.equal(manager.HandleVirtualKeyDown('éà', false), 'r');
   ours = false;
   manager.HandleVirtualKeyDown('Enter', false);
   client.Input.ControllerKeyboardSendText('x');
-  assert.deepEqual(seen, [['m', 'かな', false], ['m', 'Enter', false], ['send', 'x']]);
+  assert.deepEqual(seen, [['m', 'éà', false], ['m', 'Enter', false], ['send', 'x']]);
   assert.deepEqual(entries.map(({ dt, ...e }) => e), [
     { fn: 'VKM0.HandleVirtualKeyDown', by: 'ours', args: ['text:2:non-ascii', false] },
     { fn: 'VKM0.HandleVirtualKeyDown', by: 'stock', args: ['Enter', false], dismiss: false },
     { fn: 'Input.ControllerKeyboardSendText', by: 'stock', args: ['text:1:ascii'] },
   ]);
-  assert.ok(!JSON.stringify(entries).includes('かな'));
+  assert.ok(!JSON.stringify(entries).includes('éà'));
   rec.refresh(); // already wrapped: no double wrap
   assert.equal(rec.count, 2);
   rec.uninstall();
@@ -78,12 +78,12 @@ test('class methods are wrapped on the prototype (every instance) and IBus key e
     client: {},
     ibus: { _Prototypes: { IBusInputContext: Context } },
   });
-  hidden.HandleVirtualKeyDown('かな');
+  hidden.HandleVirtualKeyDown('éà');
   const ctx = new Context();
   await ctx.process_key_event(0x3042, 0, 0);
   await ctx.process_key_event(0xff0d, 0, 0);
   ctx.connect('commit-text', () => 'ok');
-  assert.equal(ctx.handler({ text: '漢字' }), 'ok');
+  assert.equal(ctx.handler({ text: 'âä' }), 'ok');
   await new Promise((r) => setTimeout(r, 0));
   assert.deepEqual(entries.map(({ fn, args, result }) => [fn, args, result]), [
     ['VKM?.HandleVirtualKeyDown', ['text:2:non-ascii'], undefined],

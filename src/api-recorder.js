@@ -28,7 +28,7 @@ const IBUS_SIGNALS = new Set(['commit-text', 'forward-key-event', 'delete-surrou
  * @param {unknown} value - Argument
  * @returns {string|number|boolean|null} Key name, number, boolean, or "text:<len>:<class>"
  * @example
- * describe('かんじ') // "text:3:non-ascii"
+ * describe('éé') // "text:2:non-ascii"
  * describe('Enter') // "Enter"
  */
 export const describe = (value) => {
@@ -82,7 +82,7 @@ export const installApiRecorder = ({ getManagers, isOurs, onCall, extra = () => 
    * @param {(args: unknown[]) => unknown[]} mapArgs - Argument describer
    * @returns {object|null} Entry
    * @example
-   * entryFor('VKM0.HandleVirtualKeyDown', manager, ['あ', false], (a) => a.map(describe))
+   * entryFor('VKM0.HandleVirtualKeyDown', manager, ['é', false], (a) => a.map(describe))
    */
   const entryFor = (fn, self, args, mapArgs) => {
     const now = performance.now();

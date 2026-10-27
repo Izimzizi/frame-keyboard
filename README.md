@@ -1,148 +1,100 @@
-# frame-jp-keyboard
+# frame-keyboard
 
-Steam Frame の VR キーボードに、スマホでおなじみの**12 キーのフリック入力**、**かな漢字変換**、**英単語の候補つきの QWERTY** を重ねて表示する。Steam のファイルは書き換えない。Steam クライアントの中（SharedJSContext）に Chrome DevTools Protocol で JS を差し込んで動かす。
+A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keyboard). It draws over Steam's own keyboard and types through it, so it works anywhere the stock keyboard does. No Steam files are modified: the script runs inside the Steam client (SharedJSContext) and is injected over the Chrome DevTools Protocol.
 
-- 変換には、本体に入っている anthy（libanthy）を差し込み役（Python）から直接使う。IBus は使わないので、純正キーボードの状態には触らない。学習データ（`~/.anthy`）は純正キーボードと共有する。
-- 自作キーボードで足りないときは、いつでも純正キーボードに切り替えられる。
+> **Unofficial tool.** Not affiliated with Valve. It relies on undocumented parts of Steam, so a Steam update can break it. Use it at your own risk.
 
-> **非公式のツールです。** Valve とは関係ありません。Steam の非公開の仕組みに頼っているので、Steam の更新で動かなくなることがあります。自己責任で使ってください（下の「注意」を読んでください）。
+## Features
 
-## スクリーンショット
+- Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
+- **Ctrl, Alt and Meta** one-shot modifiers. Tap a modifier, then tap a key to send the chord (Ctrl then C copies, Alt then Tab, Meta then R, and so on). Tap the modifier again to cancel it.
+- **Meta, twice:** tap Meta once and it waits for the next key. Tap it a second time, with no time limit in between, and it is sent on its own: on Windows this opens the Start menu. The key shows the Windows logo on Windows and the Steam logo on SteamOS.
+- Esc and F1 to F12 in a strip above the keys.
+- Shifted symbols shown in the corner of each key. A preview bubble shows the character you just pressed.
+- A key click sound (toggle with the ♪ button).
+- Optional automatic capital letter after `. `, `! `, `? ` or a new line (off by default).
+- A close button, and a `Steam ⌨` button that switches back to the stock keyboard at any time. A small button at the top right brings this keyboard back.
+- Keeps the stock keyboard hidden behind it, and stops controller buttons from reaching it.
 
-日本語（左に変換候補、右に 12 キーのフリック。候補の下に閉じる・切り取り・コピー・貼り付け・更新・Steam ⌨）:
+## Requirements
 
-![日本語のフリック配列](docs/images/kana.png)
+- A Steam Frame (or a SteamOS / Linux machine running Steam) with **developer mode** enabled. Developer mode makes Steam open a local-only debugging port, `127.0.0.1:8080`, which is what the keyboard uses.
+- `python3` with `aiohttp` (already present on the Frame).
+- Node.js and npm, to build the bundle from the source when installing. If you cannot install them on the device, build on another machine (see [Building](#building)) and copy `dist/bundle.js` next to `install.sh`.
+- No `sudo` is needed.
 
-入力中。打つたびに、文全体の変換から先頭の文節の候補までが左に並ぶ:
+## Install
 
-![変換候補が並んだ状態](docs/images/candidates.png)
-
-英語（PC と同じ並び。キー右上の文字は上フリックで入る）:
-
-![英語の QWERTY 配列](docs/images/qwerty.png)
-
-## 必要なもの
-
-- 開発者モードを有効にした Steam Frame（設定 → システム → 開発者モードを有効化。開発者の項目でパスワードを設定）。開発者モードのときだけ、Steam が本体の中からだけ届くデバッグ用の口（`127.0.0.1:8080`）を開くので、それを使う。
-- 本体に SSH などでファイルをコピーできること。
-- sudo は要らない。
-
-## インストール／アンインストール（Frame 本体）
-
-### いちばんかんたん：Frame の中だけで入れる（おすすめ）
-
-PC は要りません。Frame の Konsole（画面下のバーの ＋ →「プログラムを起動」→ Konsole）で次のコマンドを入力して Enter を押し、メニューで **2**（frame-jp-keyboard）を選びます。
+On the device (for example in Konsole):
 
 ```sh
-curl -fsSL https://frame.sasaken1102s.net | sh
+git clone https://github.com/Izimzizi/frame-keyboard.git
+cd frame-keyboard
+./install.sh
 ```
 
-- 最初の 1 回だけ、Steam 設定 → システム →「開発者モードを有効化」をオンにしておきます（オフだと ＋ の一覧に Konsole が出ません）
-- ほかのアプリ（frameeyeosc・frame-mic-tuner・frame-perf-overlay）も同じメニューから一緒に入れられます
-- 更新は、同じコマンドで同じ番号を選ぶだけ。アンインストールはメニューの `u` から
-- くわしい手順と動画：https://frame.sasaken1102s.net
-- 質問なしで入れるなら `curl -fsSL https://frame.sasaken1102s.net | sh -s -- install keyboard`
+`install.sh` builds the bundle if there is none, copies the files to `~/.local/share/frame-keyboard`, and installs and starts a systemd **user** service named `frame-keyboard`. The service waits for Steam, injects the keyboard, and injects it again after every Steam restart. Run `./install.sh` again at any time to update. A leftover install of the earlier `frame-jp-keyboard` is removed automatically.
 
-入るもの・オプションは、下の「PC から入れる」と同じです（中で `install.sh` を実行しています）。
-
-### PC から入れる
-
-リリースの `frame-jp-keyboard-<バージョン>.tar.gz` を本体にコピーして、本体の上で:
+Useful commands:
 
 ```sh
-tar xzf frame-jp-keyboard-*.tar.gz
-cd frame-jp-keyboard
-./install.sh              # 入れる・更新する（サービスを再起動して、その場で差し直す）
-./install.sh --uninstall  # 外す（そのあと Steam を再起動すると完全に純正に戻る）
+journalctl --user -u frame-keyboard -f                              # logs
+python3 ~/.local/share/frame-keyboard/frame_keyboard_injector.py --once   # inject again right now
+systemctl --user restart frame-keyboard                             # restart the service
 ```
 
-- 置き場所: `~/.local/share/frame-jp-keyboard/`（bundle.js と差し込み役、更新用の frame-update.sh）、`~/.config/systemd/user/frame-jp-keyboard.service`、`~/.config/frame-jp-keyboard/install-args`（更新のときに使う）
-- Steam が起動するたびに、サービスが自動で差し込む。
+## Uninstall
 
-## 使い方
-
-スマホのフリック入力や QWERTY と同じ感覚で使える。VR ならではのところだけ:
-
-- **フリック**: キーの上でトリガーを引いたまま、レーザーを上下左右に振って離す。
-- **変換**: 打つと左に候補が出るので、タップで選ぶ（後ろに文節が続くときは次の文節へ進み、最後の文節なら確定）。「空白」で次の候補、「⏎」で全部確定。選んだ候補は次から上に来る。
-- **あA**: 日本語 ⇔ 英語。英語では、打っている単語がキーの上に出て、スペース・記号・⏎・候補のタップで確定する。
-- **☺記**: 記号のページ。
-- **esc・tab・ctrl・alt、コピー・貼り付け**: 英語の配列は PC と同じ並び（左上に esc、a の左に tab、左下に ctrl と alt、あA は space の右、その右に ← ↑ ↓ →）。ctrl・alt は押すと光り、次のキーと一緒に送られる（ctrl → c でコピーなど。もう一度押すと取り消し）。⇧ を押してから ← → を押すと Shift+矢印（選択）になる。切り取り・コピー・貼り付けのボタンは、英語では上の行、日本語では候補の下のバーにある（入力中は隠れる）。
-- **閉じる・純正キーボードに戻す**: 左端の閉じるボタンと右端の「Steam ⌨」（日本語は候補の下のバー、英語・数字・記号は上の候補の行）。あA の長押しでも純正に戻る。自作に戻すときは右上の「あ」。自作キーボードを使っている間は、コントローラーのボタンは B（閉じる）など一部を除いて効かない（操作はレーザーで）。
-
-## 更新
-
-- **点**: 「Steam ⌨」のすぐ左にある点（日本語は候補の下のバー、英語・数字・記号は上の候補の行）。新しい版があると青く光る。入力中は隠れる。
-- **確かめる**: 点をタップすると、その場で GitHub の最新版を確かめる。
-- **更新する**: 新しい版があれば「更新する／やめる」が出る。「更新する」で裏で入れ替わる（サービスが再起動するので、キーボードが一瞬消えることがある）。
-- **自動の確認**: 起動時と 1 時間ごと（GitHub に聞くのは 1 日 1 回まで）。止めるなら `__fjk.settings.updateCheck = false; __fjk.setEnabled(true)`（保存されて、次の確認から効く。点のタップはいつでも使える）。
-- **記録**: うまくいかないときは `~/.cache/frame-jp-keyboard/update.log` を見る。
-
-## 設定
-
-Steam の CDP コンソール（SharedJSContext）で変えられる。値は Steam の localStorage に保存される。
-
-```js
-__fjk.settings.toggleInput = true;   // 同じキーの連打で あ→い→う…（既定はオフ）
-__fjk.settings.flickThreshold = 24;  // フリックとみなす距離（px）
-__fjk.settings.conversion = false;   // かな漢字変換を使わない（ひらがなを直接入力。差し直し後に有効）
-__fjk.settings.liveDelayMs = 150;    // 打つ手を止めてから候補を出すまでの時間（ms、差し直し後に有効）
-__fjk.settings.predictions = true;   // 予測（前に確定した言葉）も候補に出す（差し直し後に有効）
-__fjk.settings.suggestions = true;   // 英語の QWERTY で単語の候補を出す
-__fjk.settings.autoCapitalize = true; // 「. 」や改行のあとの最初の文字を自動で大文字にする（既定はオフ）
-__fjk.settings.updateCheck = true;   // 起動時と 1 時間ごとに更新を自動で確かめる（点のタップには関係ない）
-__fjk.setEnabled(true);              // 自作キーボードのオン／オフ
+```sh
+./install.sh --uninstall
 ```
 
-- `__fjk.settings` を直接変えた値は、次に `setEnabled` を呼んだときやモードを切り替えたときに保存される。
-- `mode`（`'kana'` か `'qwerty'`）は、あA で切り替えると自動で保存される。
+The code stays loaded in the running Steam client until Steam is restarted (or the device is rebooted), then the stock keyboard is back.
 
-## うまく動かないとき
+## Settings
 
-- **ログを見る**: `journalctl --user -u frame-jp-keyboard -f`。JS 側のログは `[fjk]` 付きで出る。
-  - `libanthy loaded` と `conversion ready` … 変換が使える。
-  - `conversion backend unavailable` / `libanthy unavailable` … 変換が使えないので、ひらがなをそのまま入力している（候補の欄に「変換なし」と出る）。
-- **差し直す**: `python3 ~/.local/share/frame-jp-keyboard/frame_jp_keyboard_injector.py --once`。古いものを外してから新しいものを入れる。
-- **その場で外す**: CDP コンソールで `__fjk.uninstall()`。ただしサービスが動いていると、数秒後にまた差し込まれる。止めるなら `systemctl --user stop frame-jp-keyboard` のあとに `__fjk.uninstall()`。完全に消すなら `./install.sh --uninstall` のあと Steam を再起動する。
-- **調査用の記録**: CDP コンソールで `__fjk.debug.recorders(true)` のあと差し直すと、押した前後の入力・フリックの判定・Steam のキーボードへの呼び出しをログに出す（入力した文字は出さない。代わりに、実行中のアプリの ID やオーバーレイの名前は出る。`recorders(false)` で戻す）。既定はオフで、そのときは Steam の関数を一切包まない。
-- 必要な Steam の中身が見つからないときは何もしないで、純正キーボードをそのまま残す（ログに `[fjk]` の警告が出る）。
-- 開発用: CDP コンソールで `__fjk.debug.capture(true)` のあと `await __fjk.debug.type('かんじ')`、`await __fjk.debug.key('space')` などで、ヘッドセットなしに変換を試せる（確定した文字は入力先に送らず `output` にたまる）。`__fjk.debug.live()` で、いまの候補と時間（候補の計算 `lastMs`）が見られる。英語は `await __fjk.debug.english('helo')`、`await __fjk.debug.suggestion(1)`。画面の寸法は `__fjk.debug.measure('kana')`。
-- 表示の位置がおかしいとき: 自作キーボードは純正キーボードのキーの枠にぴったり重ねる。その枠の位置が変なとき（ポップアップの大きさが変わったときなど）は、ポップアップ全体から下の 41 px（SteamVR の移動バーの場所）を除いた範囲に出す。
+Settings are stored in Steam's local storage. There is no settings screen; change them from the Steam CDP console through `window.__fjk`, then call `__fjk.setEnabled(true)` to save:
 
-## 既知の問題
+| Setting | Default | Meaning |
+|---|---|---|
+| `sound` | `true` | Play a click when a key is pressed (also the ♪ button) |
+| `autoCapitalize` | `false` | Capitalize the first letter after `. `, `! `, `? ` or a new line |
+| `metaCode` | `102` | USB HID key code sent for Meta. Change it with `__fjk.debug.setMetaCode(227)` if your system uses another code |
+| `debugRecorders` | `false` | Log diagnostics (raw input, gestures, Steam keyboard calls; never the text you type). Takes effect on the next injection |
 
-- **確定した日本語の一部が、まれに数字（1、2、3…）に化ける**ことがある（例: 3 文字目だけ「3」になる）。アプリに届ける仕組み自体は純正キーボードと同じで、原因は調査中。起きたら消して打ち直してください。
-- **両手のレーザーをキーボードに向けていると、片方の手ではフリック中の案内が動かない**。SteamVR がその手の位置を離すまで送ってこないため。フリック自体はできて、離したときに入る文字が光る。片手だけ向ければ普通に出る。
+Example: `__fjk.settings.autoCapitalize = true; __fjk.setEnabled(true)`.
 
-## 注意
+## Troubleshooting
 
-- **非公式**のツールです。Valve が作ったり、確認したり、サポートしたりしているものではありません。Steam および Steam Frame は、米国および／またはその他の国における Valve Corporation の商標および／または登録商標です。本プロジェクトは Valve と提携・承認・後援関係にありません。
-- Steam の画面の中で自作の JavaScript を動かしますが、使うのは開発者モードのときだけ Valve 自身が開くデバッグ用の口（`127.0.0.1:8080`、Chrome DevTools Protocol）だけで、ディスク上の Steam のファイルは一切書き換えません。とはいえ、[Steam 利用規約](https://store.steampowered.com/subscriber_agreement/?l=japanese)には、これに当てはまり得る条項が 2 つあります。**2.G** は、Steam のソフトウェアやコンテンツのリバースエンジニアリング・複製・改変などを、「適用される法律に基づき別途許可される場合を除き」禁じています。**4.B** は、「Valve が別途許可しない限り」Steam の実行プロセスを改ざんしないこと、認められていないサードパーティソフトウェアで Steam のプロセスや UI とやり取り・制御しないことに同意する、としています。同じ仕組みの Decky Loader などは広く使われていますが、Valve が公式に認めたものではありません。**使うかどうかはご自身で判断してください。**
-- 無保証です（LICENSE を参照）。**このソフトウェアの使用によって生じたいかなる損害（本体やアカウントに関するものを含む）についても、作者は一切の責任を負いません。**
-- Steam の非公開の中身（SharedJSContext の内部オブジェクト、`VirtualKeyboardManager`、`SteamClient.OpenVR`、`SteamClient.Input`）に頼っている。**Steam クライアントの更新で動かなくなることがある**。そのときは何もしないで純正キーボードに戻るように作ってあるので、ログを見て対応する。
-- anthy の学習データは純正キーボード（ibus-anthy）と同じファイルを使う。anthy はロックファイルと差分ファイルで複数のプロセスからの書き込みを扱う作りなので、同時に使っても壊れない。
-- 変換で選んだ候補は anthy が学習する（純正キーボードで変換したときと同じ）。候補を出すための変換（打つたびの自動変換）では学習しない。
-- 予測は anthy の機能で、前に確定した言葉しか出ない（スマホの IME のような辞書ベースの予測は無い）。
-- 更新を確かめるため、サービスが GitHub（`api.github.com`。更新するときは `github.com` とダウンロード先の `githubusercontent.com` も）に接続する。送るのは接続元の IP アドレスと curl の標準のヘッダだけで、入力した文字や本体・アカウントを識別する情報は送らない（最初の確認は、入れたあとの起動時）。入れるのは SHA256SUMS が付いていて、中身のハッシュが合うリリースだけ。SHA256SUMS は同じリリースに付けたもので、ダウンロードの破損を防ぐためのもの。署名ではないので、作者の GitHub アカウントが乗っ取られた場合までは防げない。更新では、リリースに入っている install.sh を実行する。表示の言語は `~/.steam/registry.vdf` の言語設定を読むだけで、書き換えない。Valve のサービスには接続しない。
-- 英単語の一覧は 12dicts 6.0.2（Alan Beale）から作った（`data/12dicts-6.0.2/`、作り直しは `npm run words`）。使ったリストは AGID（Kevin Atkinson）に依存しているのでパブリックドメインではなく、AGID・WordNet 1.6・UK Advanced Cryptics Dictionary の著作権表示を残す条件つき（再配布・改変は自由）。全文は `THIRD_PARTY_LICENSES.md`。
+- **Nothing happens when the keyboard opens:** check that developer mode is on and that the service is running (`systemctl --user status frame-keyboard`). The log should show `connected to SharedJSContext` and `injected`.
+- **The stock keyboard shows instead:** tap the small button at the top right to bring this keyboard back, or run the `--once` command above.
+- **Ctrl, Alt, Esc, F-keys or Meta do nothing:** the log then says `this Steam client has no key-state call`. That Steam build does not offer the call these keys need.
+- **Meta does not open the menu:** your system may use a different key code. Try `__fjk.debug.rawKey(227)` and set the working code with `__fjk.debug.setMetaCode(...)`.
 
-## 開発
+## Building
 
 ```sh
 npm install
-npm test          # 単体テスト
-npm run build     # dist/bundle.js を作る（配布用に圧縮）
-npm run build -- --debug  # 調査用: 読みやすい未圧縮の bundle.js を作る
-npm run package   # テストとビルドのあと、dist/frame-jp-keyboard-<バージョン>.tar.gz と dist/SHA256SUMS を作る
+npm run build   # writes dist/bundle.js
+npm test        # unit tests
 ```
 
-- ビルドは PC（Node.js）で行う。本体では Python 3（aiohttp。SteamOS に入っている）で差し込み役が動くだけ。
-- リリースには、アーカイブと一緒に `dist/SHA256SUMS` も付ける（無いと点からの更新で入れられない）。
-- `vendor/frame-updater/` は、同じ作者の frame-updater リポジトリ（非公開）の写しで、この写し自体は本プロジェクトの MIT ライセンスで配る。`cpp/` は他のアプリ用で、ここでは使わない。手で直さず、あちらの `sync.sh` で取り込み直す（`npm run package` が `MANIFEST.sha256` と照合する）。
-- 開発中に Steam の中身を調べたメモやファイルは `research/`（Steam 内部の調査メモ置き場・非公開）に置く。`.gitignore` で除外していて**コミットしない**。
+Layout of the source:
 
-このプロジェクトは、設計・レビュー・検証・修正を作者（人間）が行い、AI アシスタント（Claude）と一緒に書いて、ユニットテストと実機の Steam Frame で確認しています。
+| Path | Purpose |
+|---|---|
+| `src/main.js` | Entry point: key handling, modifiers, open/close tracking |
+| `src/ui.js`, `src/styles.js`, `src/layout.js`, `src/icons.js` | The on-screen keyboard |
+| `src/steam.js`, `src/output-plan.js` | Sending text and keys through Steam's keyboard manager |
+| `src/key-chords.js`, `src/shift.js`, `src/sentence-tracker.js` | Modifiers, Shift and auto-capitalization |
+| `src/stock-guard.js`, `src/bounds.js`, `src/cursor-tracker.js` | Hiding the stock keyboard, placement, laser input |
+| `injector/frame_keyboard_injector.py` | Injects `dist/bundle.js` into Steam over CDP |
+| `contrib/frame-keyboard.service` | systemd user unit |
 
-## ライセンス
+## License
 
-MIT。[LICENSE](LICENSE) を参照してください。注意: MIT ライセンスが対象とするのはこのプロジェクト自体のコードで、ビルドに埋め込んでいる英単語の一覧（`src/data/words-en.js`。12dicts / AGID 由来）は**対象外**です。こちらには別の著作権表示があります（[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)）。
+MIT. See [LICENSE](LICENSE).
+
+## Credits
+
+This project is a fork of [frame-jp-keyboard](https://github.com/sasaken1102r/frame-jp-keyboard) by **sasaken1102r**, who created the original keyboard overlay and the way it hooks into the Steam client. This version keeps the QWERTY keyboard and removes the Japanese input, the update checker and the other parts that were specific to the original. Many thanks to sasaken1102r for the original work.

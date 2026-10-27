@@ -75,7 +75,7 @@ const SHIFTED_CHARS = Object.freeze({
  * keyForChar('a') // { code: 4, shift: false }
  * keyForChar('A') // { code: 4, shift: true }
  * keyForChar('!') // { code: 30, shift: true }
- * keyForChar('あ') // null
+ * keyForChar('é') // null
  */
 export const keyForChar = (ch) => {
   if (typeof ch !== 'string' || ch.length !== 1) return null;

@@ -116,7 +116,7 @@ export const getSteamUIWindows = () => {
  * window's manager.
  * @returns {any|null} The manager, or null when none exists
  * @example
- * pickKeyboardManager()?.HandleVirtualKeyDown('あ', false)
+ * pickKeyboardManager()?.HandleVirtualKeyDown('é', false)
  */
 export const pickKeyboardManager = () => {
   const managers = getKeyboardManagers();
@@ -158,8 +158,7 @@ export const missingPrerequisites = () => {
  * HandleVirtualKeyDown(text, shift) with text or with a key name ("Backspace", "Enter", "Tab",
  * "ArrowLeft", ...). The manager then deals with everything that depends on the target (Enter
  * handling, the VR keyboard's buffered and minimal modes, and how the text is delivered). How text
- * is split into calls depends on the mode; see output-plan.js. Kana-kanji conversion runs in the
- * injector (libanthy, see anthy-client.js); only committed text arrives here.
+ * is split into calls depends on the mode; see output-plan.js.
  */
 
 /**
@@ -282,7 +281,7 @@ export const sendKeyEvents = (events) => {
  * @returns {(ops: ({text: string}|{key: string})[]) => boolean} Queues the ops; false when nothing could be sent
  * @example
  * const send = createOutput();
- * send([{ text: 'あ' }, { key: 'Backspace' }]);
+ * send([{ text: 'é' }, { key: 'Backspace' }]);
  */
 export const createOutput = (getMode = () => ({ buffered: false })) => {
   /** Deliveries run one after another, so spaced (buffered) calls never interleave. */
@@ -296,7 +295,7 @@ export const createOutput = (getMode = () => ({ buffered: false })) => {
    * @param {object|undefined} vrStatus - VRKeyboardStatus (for the Enter handler check)
    * @returns {Promise<void>} Resolves when all calls are made
    * @example
-   * await deliver(manager, ['かんじ', 'Enter'], false, status)
+   * await deliver(manager, ['éé', 'Enter'], false, status)
    */
   const deliver = async (manager, calls, buffered, vrStatus) => {
     for (const call of calls) {

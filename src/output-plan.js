@@ -2,7 +2,7 @@
 //
 // Minimal mode: Steam delivers the text to apps through gamescope's input method, which gives each
 // character that the current keymap cannot type a temporary keycode and keymap. Each call means one
-// keymap change, so a run of non-ASCII text (kana, kanji) goes out as a single call. ASCII characters
+// keymap change, so a run of non-ASCII text (accented letters, emoji) goes out as a single call. ASCII characters
 // stay one call each: gamescope types them from the normal keymap without changing it.
 //
 // Buffered VR mode: the VR keyboard keeps its own text buffer and moves its cursor by one character
@@ -16,11 +16,11 @@ const ASCII = /^[\x20-\x7e]$/;
  * @param {string} text - Text
  * @returns {string[]} Graphemes
  * @example
- * graphemes('が👍🏽') // ["が", "👍🏽"]
+ * graphemes('é👍🏽') // ["é", "👍🏽"]
  */
 export const graphemes = (text) => {
   if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
-    return Array.from(new Intl.Segmenter('ja', { granularity: 'grapheme' }).segment(text), (s) => s.segment);
+    return Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text), (s) => s.segment);
   }
   return Array.from(text);
 };
@@ -33,9 +33,9 @@ export const graphemes = (text) => {
  * @returns {(string|{keys: [number, boolean][]})[]} One string per call (key names such as
  *   "Backspace" stay as they are), and the chords
  * @example
- * planCalls([{ text: 'かんじ' }], { buffered: false }) // ["かんじ"]
+ * planCalls([{ text: 'éé' }], { buffered: false }) // ["éé"]
  * planCalls([{ text: 'hi' }], { buffered: false }) // ["h", "i"]
- * planCalls([{ text: 'かんじ' }], { buffered: true }) // ["か", "ん", "じ"]
+ * planCalls([{ text: 'éé' }], { buffered: true }) // ["é", "é"]
  */
 export const planCalls = (ops, { buffered }) => {
   const calls = [];

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { CLIPBOARD_CHORDS, MODIFIER_CODES, createModifiers, keyForChar, keyForName, planChord, setMetaCode } from '../src/key-chords.js';
 import { planCalls } from '../src/output-plan.js';
 import { releaseHeldKeys, sendKeyEvents } from '../src/steam.js';
-import { PAGES, hasFlickGuide } from '../src/layout.js';
+import { PAGES, hasKeyPreview } from '../src/layout.js';
 
 test('chords: letters, digits and US punctuation map to their keys', () => {
   assert.deepEqual(keyForChar('a'), { code: 4, shift: false });
@@ -15,7 +15,7 @@ test('chords: letters, digits and US punctuation map to their keys', () => {
   assert.deepEqual(keyForChar('/'), { code: 56, shift: false });
   assert.deepEqual(keyForChar('?'), { code: 56, shift: true });
   assert.equal(keyForChar('€'), null);
-  assert.equal(keyForChar('あ'), null);
+  assert.equal(keyForChar('ë'), null);
   assert.equal(keyForChar('ab'), null);
   assert.deepEqual(keyForName('Escape'), { code: 41, shift: false });
   assert.deepEqual(keyForName('Tab'), { code: 43, shift: false });
@@ -162,9 +162,9 @@ test('layout: symbol keys carry the character they type with shift', () => {
   }
 });
 
-test('layout: letter keys show the flick guide; action keys (arrows included) do not', () => {
+test('layout: letter keys show the key preview; action keys (arrows included) do not', () => {
   const keys = PAGES.qwerty.flat();
   const byId = (id) => keys.find((k) => k.id === id);
-  assert.ok(hasFlickGuide(byId('q')));
-  for (const id of ['del', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasFlickGuide(byId(id)), false, id);
+  assert.ok(hasKeyPreview(byId('q')));
+  for (const id of ['del', 'tab', 'ctrl', 'space', 'enter', 'backspace', 'left', 'up', 'down', 'right']) assert.equal(hasKeyPreview(byId(id)), false, id);
 });
