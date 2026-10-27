@@ -18,14 +18,26 @@ A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keybo
 
 ## Requirements
 
-- A Steam Frame (or a SteamOS / Linux machine running Steam) with **developer mode** enabled. Developer mode makes Steam open a local-only debugging port, `127.0.0.1:8080`, which is what the keyboard uses.
-- `python3` with `aiohttp` (already present on the Frame).
+- A Steam Frame (or a SteamOS / Linux machine running Steam) with **developer mode** enabled. Developer mode makes Steam open a local-only debugging port, `127.0.0.1:8080`, which is what the keyboard uses. On Windows the installer enables that port itself.
+- Linux only: `python3` with `aiohttp` (already present on the Frame). Windows needs nothing extra (Windows PowerShell 5.1 or newer, which ships with Windows 10 and 11).
 - Node.js and npm only if you install from the source instead of a release.
 - No `sudo` is needed.
 
 ## Install
 
-### From a release (recommended)
+### Windows
+
+Download `frame-keyboard-<version>-windows.zip` from the [Releases page](https://github.com/Izimzizi/frame-keyboard/releases), extract it, and double-click `install.cmd` (or run `install.ps1` in PowerShell). Nothing else needs to be installed and no administrator rights are needed. The installer:
+
+1. creates an empty `.cef-enable-remote-debugging` file next to `steam.exe`, which makes Steam open its debugging port (`127.0.0.1:8080`, reachable only from this PC) the next time it starts;
+2. copies the files to `%LOCALAPPDATA%rame-keyboard`;
+3. registers a Scheduled Task named `frame-keyboard` that runs the injector hidden at every logon and injects the keyboard again after every Steam restart.
+
+**Restart Steam once afterwards** (or run `install.ps1 -RestartSteam`). The log is `%LOCALAPPDATA%rame-keyboard\injector.log`. To remove it, run `install.ps1 -Uninstall` (add `-RemoveFlag` to delete the `.cef-enable-remote-debugging` file too) and restart Steam.
+
+### Linux / SteamOS / Steam Frame
+
+#### From a release (recommended)
 
 On the device (for example in Konsole), download the latest archive from the [Releases page](https://github.com/Izimzizi/frame-keyboard/releases), then:
 
@@ -37,7 +49,7 @@ cd frame-keyboard
 
 The archive already contains the built bundle, so Node.js is not needed. Releases are built by GitHub Actions from a version tag; `SHA256SUMS` is attached for checking the download.
 
-### From the source
+#### From the source
 
 ```sh
 git clone https://github.com/Izimzizi/frame-keyboard.git
@@ -102,7 +114,8 @@ Layout of the source:
 | `src/steam.js`, `src/output-plan.js` | Sending text and keys through Steam's keyboard manager |
 | `src/key-chords.js`, `src/shift.js`, `src/sentence-tracker.js` | Modifiers, Shift and auto-capitalization |
 | `src/stock-guard.js`, `src/bounds.js`, `src/cursor-tracker.js` | Hiding the stock keyboard, placement, laser input |
-| `injector/frame_keyboard_injector.py` | Injects `dist/bundle.js` into Steam over CDP |
+| `injector/frame_keyboard_injector.py` | Injects `dist/bundle.js` into Steam over CDP (Linux) |
+| `windows/` | The same injector in PowerShell, plus `install.ps1` / `install.cmd` (Windows) |
 | `contrib/frame-keyboard.service` | systemd user unit |
 
 ## License
