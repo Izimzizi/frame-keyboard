@@ -246,7 +246,10 @@ const install = () => {
         // A one-shot Shift alone makes the arrows select (Shift+←), as on a PC; not with Caps (a
         // locked Shift), which doesn't select on a PC.
         const shiftArrow = ARROWS.includes(id) && shift.state === 'once';
-        if (!modifiers.active && !shiftArrow) return false;
+        // Shift+Enter is sent as that chord (a new line in a chat box or text area) instead of the
+        // stock Enter, which submits.
+        const shiftEnter = id === 'enter' && shift.state !== 'off';
+        if (!modifiers.active && !shiftArrow && !shiftEnter) return false;
         sendChord(takeHeld(), keyForName(CHORD_ACTIONS[id]));
         return true;
       }

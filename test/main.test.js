@@ -62,6 +62,15 @@ test('meta: an armed meta goes out with the next key', () => {
   assert.equal(api.debug.state().modifiers.meta, false);
 });
 
+test('shift then enter goes out as Shift+Enter, then plain enter again', () => {
+  api.debug.key('shift');
+  const out = api.debug.key('enter').output.at(-1);
+  assert.deepEqual(out.keys[0], [101, true]);
+  assert.equal(out.keys.at(-1)[1], false);
+  assert.equal(api.debug.state().shift, 'off');
+  assert.deepEqual(api.debug.key('enter').output.at(-1), { key: 'Enter' });
+});
+
 test('uninstall removes the handle and the timer', () => {
   assert.equal(intervals.size, 1);
   api.uninstall();

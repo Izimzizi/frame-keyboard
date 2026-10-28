@@ -2,6 +2,8 @@
 
 A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keyboard). It draws over Steam's own keyboard and types through it, so it works anywhere the stock keyboard does. No Steam files are modified: the script runs inside the Steam client (SharedJSContext) and is injected over the Chrome DevTools Protocol.
 
+> **Independent project.** This started as a fork of [frame-jp-keyboard](https://github.com/sasaken1102r/frame-jp-keyboard) by sasaken1102r, but it has been detached from it and heavily modified (see [Credits](#credits)). It is not maintained by, endorsed by or affiliated with the original author, and it is not a continuation of that repository. Issues and questions about this version belong here, not there.
+>
 > **Unofficial tool.** Not affiliated with Valve. It relies on undocumented parts of Steam, so a Steam update can break it. Use it at your own risk.
 
 ![The keyboard](docs/images/keyboard.png)
@@ -15,6 +17,7 @@ A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keybo
 - Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps Lock, shown as a filled arrow), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
 - **Ctrl, Alt and Meta** one-shot modifiers. Tap a modifier, then tap a key to send the chord (Ctrl then C copies, Alt then Tab, Meta then R, and so on). Tap the modifier again to cancel it.
 - **Meta, twice:** tap Meta once and it waits for the next key. Tap it a second time, with no time limit in between, and it is sent on its own: on Windows this opens the Start menu. The key shows the Windows logo on Windows and the Steam logo on SteamOS.
+- **Shift+Enter:** arm Shift, then tap Enter to send Shift+Enter (a new line in a chat box or text area; plain Enter submits).
 - Esc and F1 to F12 in a strip above the keys.
 - Shifted symbols shown in the corner of each key.
 - A key click sound. The speaker button in the strip turns it on and off (the sound waves disappear when it is off).
@@ -132,4 +135,10 @@ MIT. See [LICENSE](LICENSE).
 
 ## Credits
 
-This project is a fork of [frame-jp-keyboard](https://github.com/sasaken1102r/frame-jp-keyboard) by **sasaken1102r**, who created the original keyboard overlay and the way it hooks into the Steam client. This version keeps the QWERTY keyboard and removes the Japanese input, the update checker and the other parts that were specific to the original. Many thanks to sasaken1102r for the original work.
+frame-keyboard is a **derivative work** of [frame-jp-keyboard](https://github.com/sasaken1102r/frame-jp-keyboard) by **sasaken1102r** (MIT licensed). It began as a fork of that repository and has since been detached from it: it no longer tracks or syncs with upstream.
+
+What came from the original: the idea of drawing a keyboard over Steam's VR keyboard popup, the way the script is injected into the Steam client over the Chrome DevTools Protocol, and the early structure of the overlay and its key handling.
+
+What changed: the Japanese input (kana, IME and dictionaries), the word suggestions, the update checker and the original's documentation were removed; the UI, icons, layout, modifier handling (Ctrl, Alt, Meta, Shift+Enter), the installers (Linux and Windows) and the release process were rewritten or added. Most of the code is no longer the original's.
+
+This repository is not an active continuation of frame-jp-keyboard. If you want the Japanese keyboard, use the original project. The original copyright notice is kept in [LICENSE](LICENSE), as the MIT license requires. Many thanks to sasaken1102r for the original work.
