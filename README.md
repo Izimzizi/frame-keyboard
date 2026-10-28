@@ -4,16 +4,22 @@ A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keybo
 
 > **Unofficial tool.** Not affiliated with Valve. It relies on undocumented parts of Steam, so a Steam update can break it. Use it at your own risk.
 
+![The keyboard](docs/images/keyboard.png)
+
+*Caps Lock on (filled Shift arrows), Meta armed (highlighted), click sound off (muted speaker):*
+
+![Caps Lock, Meta armed, sound off](docs/images/keyboard-caps-meta.png)
+
 ## Features
 
-- Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
+- Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps Lock, shown as a filled arrow), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
 - **Ctrl, Alt and Meta** one-shot modifiers. Tap a modifier, then tap a key to send the chord (Ctrl then C copies, Alt then Tab, Meta then R, and so on). Tap the modifier again to cancel it.
 - **Meta, twice:** tap Meta once and it waits for the next key. Tap it a second time, with no time limit in between, and it is sent on its own: on Windows this opens the Start menu. The key shows the Windows logo on Windows and the Steam logo on SteamOS.
 - Esc and F1 to F12 in a strip above the keys.
-- Shifted symbols shown in the corner of each key. A preview bubble shows the character you just pressed.
-- A key click sound (toggle with the ♪ button).
+- Shifted symbols shown in the corner of each key.
+- A key click sound. The speaker button in the strip turns it on and off (the sound waves disappear when it is off).
 - Optional automatic capital letter after `. `, `! `, `? ` or a new line (off by default).
-- A close button, and a `Steam ⌨` button that switches back to the stock keyboard at any time. A small button at the top right brings this keyboard back.
+- A close button (keyboard with a down chevron) at the top left, and a **Steam** button with a small keyboard icon at the top right that switches back to the stock keyboard at any time. A small round keyboard-icon button at the top right of the popup brings this keyboard back.
 - Keeps the stock keyboard hidden behind it, and stops controller buttons from reaching it.
 
 ## Requirements
@@ -85,7 +91,7 @@ Settings are stored in Steam's local storage. There is no settings screen; chang
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `sound` | `true` | Play a click when a key is pressed (also the ♪ button) |
+| `sound` | `true` | Play a click when a key is pressed (also the speaker button) |
 | `autoCapitalize` | `false` | Capitalize the first letter after `. `, `! `, `? ` or a new line |
 | `metaCode` | `102` | USB HID key code sent for Meta. Change it with `__fjk.debug.setMetaCode(227)` if your system uses another code |
 | `debugRecorders` | `false` | Log diagnostics (raw input, gestures, Steam keyboard calls; never the text you type). Takes effect on the next injection |
@@ -95,7 +101,7 @@ Example: `__fjk.settings.autoCapitalize = true; __fjk.setEnabled(true)`.
 ## Troubleshooting
 
 - **Nothing happens when the keyboard opens:** check that developer mode is on and that the service is running (`systemctl --user status frame-keyboard`). The log should show `connected to SharedJSContext` and `injected`.
-- **The stock keyboard shows instead:** tap the small button at the top right to bring this keyboard back, or run the `--once` command above.
+- **The stock keyboard shows instead:** tap the small keyboard-icon button at the top right to bring this keyboard back, or run the `--once` command above.
 - **Ctrl, Alt, Esc, F-keys or Meta do nothing:** the log then says `this Steam client has no key-state call`. That Steam build does not offer the call these keys need.
 - **Meta does not open the menu:** your system may use a different key code. Try `__fjk.debug.rawKey(227)` and set the working code with `__fjk.debug.setMetaCode(...)`.
 
