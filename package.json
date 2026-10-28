@@ -1,6 +1,6 @@
 {
   "name": "frame-keyboard",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "QWERTY keyboard overlay for the Steam Frame / SteamVR keyboard, injected over CDP",
   "private": true,
   "type": "module",
