@@ -9,23 +9,17 @@
 # checkout there is none, so it is built from src/ with `npm run build` (needs Node.js and npm).
 set -eu
 
-# Started from a file manager ("Run in terminal"), the terminal would close the moment the script
-# ends (Konsole is even started with --noclose and stays open afterwards), so the result could not
-# be read. Wait for Enter, then close this Konsole tab through its own D-Bus session object. A script
-# run from a shell does neither.
+# Started from a file manager ("Run in terminal"), the terminal can close the moment the script ends,
+# so the result could not be read, or (Konsole is started with --noclose) it stays open and cannot be
+# closed from here. Show the result, tell the user the window can be closed, and wait for Enter. A
+# script run from a shell does neither.
 pause_before_close() {
     [ -t 0 ] || return 0
     case "$(ps -o comm= -p "$PPID" 2>/dev/null || true)" in
         bash|sh|zsh|fish|dash|ksh|ash|csh|tcsh|"") return 0 ;;
     esac
-    printf '\nPress Enter to close...'
+    printf '\nAll done. You can safely close this window now (or press Enter).'
     read -r _ || true
-    if [ -n "${KONSOLE_DBUS_SERVICE:-}" ] && [ -n "${KONSOLE_DBUS_SESSION:-}" ]; then
-        dbus-send --session --type=method_call --dest="$KONSOLE_DBUS_SERVICE" "$KONSOLE_DBUS_SESSION" \
-            org.kde.konsole.Session.close >/dev/null 2>&1 \
-            || qdbus "$KONSOLE_DBUS_SERVICE" "$KONSOLE_DBUS_SESSION" org.kde.konsole.Session.close >/dev/null 2>&1 \
-            || true
-    fi
 }
 trap pause_before_close EXIT
 
