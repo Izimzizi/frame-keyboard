@@ -211,6 +211,39 @@ export const mountOverlay = (doc, handlers) => {
   /** Recent key gestures, numbers only (debug). */
   let gestureLog = [];
 
+  /** What a laser can hover: the keys and the strip's buttons. */
+  const HOVER_SELECTOR = '.fjk-key, .fjk-close, .fjk-fkey, .fjk-sound, .fjk-stock';
+  /** @type {Map<number, HTMLElement>} The element each laser (cursor index) is over. */
+  const hovered = new Map();
+
+  /**
+   * Highlight the element a laser is over (each laser has its own; two lasers can share one).
+   * @param {number} index - Cursor index
+   * @param {HTMLElement|null} target - Element under the laser, or null when it is over nothing
+   * @returns {void}
+   * @example
+   * setHover(0, keyEl)
+   */
+  const setHover = (index, target) => {
+    const previous = hovered.get(index) ?? null;
+    if (previous === target) return;
+    if (target) hovered.set(index, target);
+    else hovered.delete(index);
+    if (previous && ![...hovered.values()].includes(previous)) previous.classList.remove('fjk-hover');
+    target?.classList.add('fjk-hover');
+  };
+
+  /**
+   * Remove every hover highlight.
+   * @returns {void}
+   * @example
+   * clearHover()
+   */
+  const clearHover = () => {
+    for (const node of new Set(hovered.values())) node.classList.remove('fjk-hover');
+    hovered.clear();
+  };
+
   /**
    * A laser cursor moved (SteamVR reports each controller's cursor separately).
    * @param {number} index - Cursor index
@@ -223,6 +256,16 @@ export const mountOverlay = (doc, handlers) => {
    */
   const onCursor = (index, active, x, y) => {
     tracker.update(index, !!active, Number(x), Number(y));
+    try {
+      if (!active || root.hidden) {
+        setHover(index, null);
+      } else {
+        const scale = tracker.scale ?? 1;
+        setHover(index, closest(shadow.elementFromPoint(Number(x) * scale, Number(y) * scale), HOVER_SELECTOR));
+      }
+    } catch {
+      clearHover(); // Hover is only a hint; never let it break pressing.
+    }
     const g = gesture;
     // After touchend the stream is laser movement after the release: it no longer moves the press.
     if (!active || !g || g.presser !== index || g.released) return;
@@ -628,6 +671,7 @@ export const mountOverlay = (doc, handlers) => {
   const setEnabled = (value) => {
     enabled = !!value;
     cancelGesture();
+    clearHover();
     applyHostStyle();
   };
 
@@ -660,6 +704,7 @@ export const mountOverlay = (doc, handlers) => {
       // Already gone with the popup.
     }
     cursorHandle = null;
+    clearHover();
     if (recorder) for (const type of recordTypes) doc.removeEventListener(type, recordEvent, { capture: true });
     stockGuard.destroy();
     host.remove();
