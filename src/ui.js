@@ -213,8 +213,12 @@ export const mountOverlay = (doc, handlers) => {
 
   /** What a laser can hover: the keys and the strip's buttons. */
   const HOVER_SELECTOR = '.fjk-key, .fjk-close, .fjk-fkey, .fjk-sound, .fjk-stock';
+  /** A laser that has not reported for this long (ms) no longer hovers anything (SteamVR streams only the focused laser). */
+  const HOVER_STALE_MS = 250;
   /** @type {Map<number, HTMLElement>} The element each laser (cursor index) is over. */
   const hovered = new Map();
+  /** @type {Map<number, number>} When each laser last reported (performance.now()). */
+  const hoverSeen = new Map();
 
   /**
    * Highlight the element a laser is over (each laser has its own; two lasers can share one).
@@ -242,6 +246,7 @@ export const mountOverlay = (doc, handlers) => {
   const clearHover = () => {
     for (const node of new Set(hovered.values())) node.classList.remove('fjk-hover');
     hovered.clear();
+    hoverSeen.clear();
   };
 
   /**
@@ -260,6 +265,13 @@ export const mountOverlay = (doc, handlers) => {
       if (!active || root.hidden) {
         setHover(index, null);
       } else {
+        const t = performance.now();
+        hoverSeen.set(index, t);
+        // SteamVR streams only the laser it focuses; when focus moves to the other hand the first
+        // laser goes silent, so drop its highlight instead of leaving it on the last key it touched.
+        for (const other of [...hovered.keys()]) {
+          if (other !== index && t - (hoverSeen.get(other) ?? 0) > HOVER_STALE_MS) setHover(other, null);
+        }
         const scale = tracker.scale ?? 1;
         setHover(index, closest(shadow.elementFromPoint(Number(x) * scale, Number(y) * scale), HOVER_SELECTOR));
       }
