@@ -10,7 +10,9 @@
 set -eu
 
 # Started from a file manager ("Run in terminal"), the terminal would close the moment the script
-# ends and the result could not be read. Wait for Enter then; a script run from a shell does not.
+# ends (Konsole is even started with --noclose and stays open afterwards), so the result could not
+# be read. Wait for Enter, then close this Konsole tab through its own D-Bus session object. A script
+# run from a shell does neither.
 pause_before_close() {
     [ -t 0 ] || return 0
     case "$(ps -o comm= -p "$PPID" 2>/dev/null || true)" in
@@ -18,6 +20,12 @@ pause_before_close() {
     esac
     printf '\nPress Enter to close...'
     read -r _ || true
+    if [ -n "${KONSOLE_DBUS_SERVICE:-}" ] && [ -n "${KONSOLE_DBUS_SESSION:-}" ]; then
+        dbus-send --session --type=method_call --dest="$KONSOLE_DBUS_SERVICE" "$KONSOLE_DBUS_SESSION" \
+            org.kde.konsole.Session.close >/dev/null 2>&1 \
+            || qdbus "$KONSOLE_DBUS_SERVICE" "$KONSOLE_DBUS_SESSION" org.kde.konsole.Session.close >/dev/null 2>&1 \
+            || true
+    fi
 }
 trap pause_before_close EXIT
 
