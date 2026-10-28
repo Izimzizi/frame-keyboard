@@ -33,7 +33,7 @@ Download `frame-keyboard-<version>-windows.zip` from the [Releases page](https:/
 2. copies the files to `%LOCALAPPDATA%\frame-keyboard`;
 3. registers a Scheduled Task named `frame-keyboard` that runs the injector with no window at every logon and injects the keyboard again after every Steam restart.
 
-**Restart Steam once afterwards** (or run `install.ps1 -RestartSteam`). The log is `%LOCALAPPDATA%\frame-keyboard\injector.log`. To remove it, run `install.ps1 -Uninstall` (add `-RemoveFlag` to delete the `.cef-enable-remote-debugging` file too) and restart Steam.
+**Restart Steam once afterwards** (or run `install.ps1 -RestartSteam`). The log is `%LOCALAPPDATA%\frame-keyboard\injector.log`. To remove it, double-click `uninstall.cmd` from the zip (or run `install.ps1 -Uninstall`; add `-RemoveFlag` to delete the `.cef-enable-remote-debugging` file too) and restart Steam.
 
 ### Linux / SteamOS / Steam Frame
 
@@ -71,8 +71,10 @@ systemctl --user restart frame-keyboard                             # restart th
 
 ## Uninstall
 
+From the extracted release folder, right-click `uninstall.sh` and choose Run in Terminal, or:
+
 ```sh
-./install.sh --uninstall
+./uninstall.sh      # same as ./install.sh --uninstall
 ```
 
 The code stays loaded in the running Steam client until Steam is restarted (or the device is rebooted), then the stock keyboard is back.

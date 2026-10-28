@@ -2,11 +2,24 @@
 # Install or update frame-keyboard as a user service on a Steam Frame (or any SteamOS / Linux
 # machine running Steam). Run it as the normal user, no sudo needed:
 #   ./install.sh               build (if needed), install, then (re)start
-#   ./install.sh --uninstall   stop and remove (restart Steam afterwards to fully unload)
+#   ./install.sh --uninstall   stop and remove (restart Steam afterwards to fully unload);
+#                              uninstall.sh does the same
 #
 # The release archive contains a ready-made bundle.js, which is used as is. From a repository
 # checkout there is none, so it is built from src/ with `npm run build` (needs Node.js and npm).
 set -eu
+
+# Started from a file manager ("Run in terminal"), the terminal would close the moment the script
+# ends and the result could not be read. Wait for Enter then; a script run from a shell does not.
+pause_before_close() {
+    [ -t 0 ] || return 0
+    case "$(ps -o comm= -p "$PPID" 2>/dev/null || true)" in
+        bash|sh|zsh|fish|dash|ksh|ash|csh|tcsh|"") return 0 ;;
+    esac
+    printf '\nPress Enter to close...'
+    read -r _ || true
+}
+trap pause_before_close EXIT
 
 # A Konsole opened from the desktop (itself started from the VR dashboard) has no usable session bus
 # variables, so `systemctl --user` cannot connect. Always point it at the user's own bus.
