@@ -72,7 +72,6 @@ export const OVERLAY_CSS = `
   transition: background-color 60ms linear;
 }
 .fjk-key.fjk-side { background: var(--side); border-color: var(--side-edge); font-size: 22px; color: #dde1e5; }
-.fjk-key.fjk-hover { background-color: #484c52; border-color: var(--accent); }
 .fjk-key.fjk-pressed { background: var(--pressed); box-shadow: none; transform: translateY(1px); }
 .fjk-key.fjk-on { border-color: var(--accent); color: var(--accent); }
 .fjk-key.fjk-lock { background: #394457; }
@@ -97,7 +96,4 @@ export const OVERLAY_CSS = `
   background: rgba(138, 180, 248, 0.9); color: #0b1b33; cursor: pointer; touch-action: none;
 }
 .fjk-reenable .fjk-icon { width: 22px; height: 22px; }
-
-/* Hover: the key or button a laser points at. */
-.fjk-strip .fjk-hover { border-color: var(--accent); color: var(--text); }
 `;
