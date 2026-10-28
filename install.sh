@@ -8,15 +8,11 @@
 # checkout there is none, so it is built from src/ with `npm run build` (needs Node.js and npm).
 set -eu
 
-# A Konsole opened from the desktop (itself started from the VR dashboard) has no session bus
-# variables, so `systemctl --user` cannot connect. Point it at the user's bus when they are missing.
+# A Konsole opened from the desktop (itself started from the VR dashboard) has no usable session bus
+# variables, so `systemctl --user` cannot connect. Always point it at the user's own bus.
 uid=$(id -u)
-if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
-    export XDG_RUNTIME_DIR="/run/user/$uid"
-fi
-if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
-    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
-fi
+export XDG_RUNTIME_DIR="/run/user/$uid"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
 
 here=$(cd "$(dirname "$0")" && pwd)
 config_home=${XDG_CONFIG_HOME:-$HOME/.config}

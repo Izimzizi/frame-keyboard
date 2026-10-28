@@ -11,12 +11,22 @@ const ICON_PATHS = Object.freeze({
   close: ['M3 3h18a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M6 7h1', 'M10 7h1', 'M14 7h1', 'M18 7h1', 'M8 10.5h8', 'M8 17.5l4 3.5 4-3.5'],
   // A keyboard, for the small button that brings this keyboard back.
   keyboard: ['M3 6h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z', 'M6 10h.01', 'M10 10h.01', 'M14 10h.01', 'M18 10h.01', 'M7 14.5h10'],
-  // Meta key: the Windows logo (four panes, filled by CSS) and the SteamOS mark: a half ring and a
-  // gradient disc. Entries that are [path, fill] are filled instead of stroked.
+  // Click sound button: a speaker with two sound waves (the waves are hidden while it is off).
+  sound: ['M4 9v6h4l5 4V5L8 9z', 'M16 9a4 4 0 0 1 0 6', 'M18.5 6.5a8 8 0 0 1 0 11'],
+  // Arrows, Shift (outlined; filled by CSS while Caps is locked) and Enter. Drawn instead of typed as
+  // font glyphs, because ⇧ ⏎ ← → render stretched or squashed in some systems' fonts.
+  left: ['M19 12H5', 'M11 6l-6 6 6 6'],
+  right: ['M5 12h14', 'M13 6l6 6-6 6'],
+  up: ['M12 19V5', 'M6 11l6-6 6 6'],
+  down: ['M12 5v14', 'M6 13l6 6 6-6'],
+  shift: ['M12 3 3.5 12H8v8h8v-8h4.5z'],
+  enter: ['M20 5v7a2 2 0 0 1-2 2H5', 'M9 10l-4 4 4 4'],
+  // Meta key: the Windows logo (four panes) and the SteamOS mark: a half ring and a disc inside it.
+  // Both are filled with the key's colour by CSS.
   'meta-windows': ['M3 3h8v8H3z', 'M13 3h8v8h-8z', 'M3 13h8v8H3z', 'M13 13h8v8h-8z'],
   'meta-steam': [
-    ['M8.8 .97A11.6 11.6 0 0 1 8.8 23.03V19.53A7.6 7.6 0 0 0 8.8 4.47z', 'currentColor'],
-    ['M14.1 12a6.3 6.3 0 1 1-12.6 0 6.3 6.3 0 0 1 12.6 0z', 'url(#fjk-steam-gradient)'],
+    'M9.25 .5A11.5 11.5 0 0 1 9.25 23.5V19.5A7.5 7.5 0 0 0 9.25 4.5z',
+    'M15.25 12a6 6 0 1 1-12 0 6 6 0 0 1 12 0z',
   ],
 });
 
@@ -42,31 +52,9 @@ export const createIcon = (doc, id) => {
   svg.setAttribute('class', `fjk-icon fjk-icon-${id}`);
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  if (id === 'meta-steam') {
-    const defs = doc.createElementNS(SVG_NS, 'defs');
-    const gradient = doc.createElementNS(SVG_NS, 'linearGradient');
-    gradient.setAttribute('id', 'fjk-steam-gradient');
-    gradient.setAttribute('x1', '0');
-    gradient.setAttribute('y1', '0');
-    gradient.setAttribute('x2', '1');
-    gradient.setAttribute('y2', '1');
-    for (const [offset, color] of [['0', '#a35bf0'], ['1', '#1a9fff']]) {
-      const stop = doc.createElementNS(SVG_NS, 'stop');
-      stop.setAttribute('offset', offset);
-      stop.setAttribute('stop-color', color);
-      gradient.append(stop);
-    }
-    defs.append(gradient);
-    svg.append(defs);
-  }
-  for (const entry of ICON_PATHS[id]) {
-    const [d, fill] = Array.isArray(entry) ? entry : [entry, null];
+  for (const d of ICON_PATHS[id]) {
     const path = doc.createElementNS(SVG_NS, 'path');
     path.setAttribute('d', d);
-    if (fill) {
-      path.setAttribute('fill', fill);
-      path.setAttribute('stroke', 'none');
-    }
     svg.append(path);
   }
   return svg;

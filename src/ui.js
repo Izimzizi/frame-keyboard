@@ -115,7 +115,8 @@ export const mountOverlay = (doc, handlers) => {
   const closeEl = el(doc, 'div', 'fjk-close');
   closeEl.title = 'Close keyboard';
   closeEl.append(createIcon(doc, 'close'));
-  const soundEl = el(doc, 'div', 'fjk-sound', '♪');
+  const soundEl = el(doc, 'div', 'fjk-sound');
+  soundEl.append(createIcon(doc, 'sound'));
   soundEl.title = 'Key click sound';
   const stockEl = el(doc, 'div', 'fjk-stock', 'Steam');
   stockEl.append(createIcon(doc, 'keyboard'));
@@ -579,7 +580,6 @@ export const mountOverlay = (doc, handlers) => {
           keyEl.classList.toggle('fjk-on', !!state.modifiers?.[def.id]);
           break;
         case 'shift':
-          setLabel(key, shift === 'lock' ? '⇪' : '⇧');
           keyEl.classList.toggle('fjk-on', shift !== 'off');
           keyEl.classList.toggle('fjk-lock', shift === 'lock');
           break;

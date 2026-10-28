@@ -48,7 +48,9 @@ export const OVERLAY_CSS = `
   border-radius: 6px; border: 1px solid var(--side-edge); background: var(--side); color: #c7ccd3; font-size: 14px; cursor: pointer;
 }
 .fjk-sound.fjk-pressed { background: var(--pressed); color: var(--text); }
-.fjk-sound.fjk-sound-off { color: #6b7078; text-decoration: line-through; }
+.fjk-sound .fjk-icon { width: 16px; height: 16px; }
+.fjk-sound.fjk-sound-off { color: #6b7078; }
+.fjk-sound.fjk-sound-off .fjk-icon-sound path:nth-child(n+2) { display: none; }
 /* Esc and F1 to F12 share the strip's width. */
 .fjk-fkeys { flex: 1 1 0; min-width: 0; display: flex; gap: 3px; align-self: center; margin: 0 6px; }
 .fjk-fkey {
@@ -81,7 +83,9 @@ export const OVERLAY_CSS = `
   width: 26px; height: 26px; display: block; fill: none; stroke: currentColor;
   stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
 }
-.fjk-icon-meta-windows path { fill: currentColor; stroke: none; }
+.fjk-icon-meta-windows path, .fjk-icon-meta-steam path { fill: currentColor; stroke: none; }
+/* Caps lock: the Shift arrow is filled. */
+.fjk-key.fjk-lock .fjk-icon-shift path { fill: currentColor; }
 .fjk-up { position: absolute; top: 2px; right: 5px; font-size: 12px; line-height: 1; color: var(--dim); }
 .fjk-row:first-child .fjk-key { font-size: 20px; }
 .fjk-row:first-child .fjk-up { top: 1px; right: 4px; font-size: 11px; }
