@@ -1,6 +1,9 @@
 name: Release
 
-# Push a tag such as v1.0.0 to build the bundle and publish a release with the archive attached.
+# Push a tag to build the bundle and publish a release with the archives attached.
+#   v1.0.0          stable release (marked Latest)
+#   v1.0.0-dev.1    dev release (marked Pre-release); -rc.1, -beta.2 and so on work too
+# The version shown in the bundle and in the file names comes from the tag.
 on:
   push:
     tags: ['v*']
@@ -19,8 +22,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - name: Check the tag matches package.json
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Take the version from the tag
+        run: npm version --no-git-tag-version "${GITHUB_REF_NAME#v}"
       - run: npm run build
       - name: Package
         run: |
@@ -39,5 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          flags="--latest"
+          case "$GITHUB_REF_NAME" in *-*) flags="--prerelease" ;; esac
           gh release create "$GITHUB_REF_NAME" frame-keyboard-*.tar.gz frame-keyboard-*-windows.zip SHA256SUMS \
-            --title "frame-keyboard ${GITHUB_REF_NAME#v}" --generate-notes
+            --title "frame-keyboard ${GITHUB_REF_NAME#v}" --generate-notes $flags
