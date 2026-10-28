@@ -557,6 +557,61 @@ const install = () => {
       return result;
     },
     /**
+     * The VR keyboard status fields (numbers, booleans and id-like strings; never typed text), to
+     * look for an overlay handle.
+     * @returns {object|null} Fields, or null when the status store is missing
+     * @example
+     * __fjk.debug.vrStatus()
+     */
+    vrStatus: () => {
+      const status = statusStore?.VRKeyboardStatus;
+      if (!status) return null;
+      const out = {};
+      for (const [name, value] of Object.entries(status)) {
+        if (typeof value === 'number' || typeof value === 'boolean') out[name] = value;
+        else if (typeof value === 'string' && /key|id|name/i.test(name)) out[name] = value.slice(0, 80);
+        else out[name] = typeof value;
+      }
+      return out;
+    },
+    /**
+     * Record what the laser callbacks pass for a few seconds while you move the laser over the
+     * keyboard and press a key. Numbers and types only.
+     * @param {number} [ms=6000] - How long to listen
+     * @returns {Promise<object>} Samples per callback
+     * @example
+     * await __fjk.debug.cursorArgs()
+     */
+    cursorArgs: async (ms = 6000) => {
+      const overlayApi = getKeyboardPopupWindow()?.SteamClient?.OpenVR?.VROverlay;
+      if (!overlayApi) return null;
+      const shape = (args) => args.map((a) => (typeof a === 'number' || typeof a === 'boolean' ? a : typeof a === 'object' && a ? `object(${Object.keys(a).join(',')})` : typeof a));
+      const samples = { cursor: [], press: [], cursorCount: 0, pressCount: 0 };
+      const handles = [];
+      try {
+        handles.push(overlayApi.RegisterForCursorMovement?.((...args) => {
+          samples.cursorCount += 1;
+          if (samples.cursor.length < 4) samples.cursor.push(shape(args));
+        }));
+        handles.push(overlayApi.RegisterForOverlayMousePressEvents?.((...args) => {
+          samples.pressCount += 1;
+          if (samples.press.length < 4) samples.press.push(shape(args));
+        }));
+      } catch (error) {
+        samples.error = String(error?.message ?? error);
+      }
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      for (const handle of handles) {
+        try {
+          handle?.unregister?.();
+          handle?.Unregister?.();
+        } catch {
+          // Already gone.
+        }
+      }
+      return samples;
+    },
+    /**
      * List the Steam client functions that could give controller haptic feedback (names only), to
      * find out whether a hover pulse like the stock keyboard's is possible. Needs the keyboard popup.
      * @returns {object|null} Function names per object, or null without a popup
