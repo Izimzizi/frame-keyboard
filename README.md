@@ -12,6 +12,8 @@ A full PC-style QWERTY keyboard for the Steam Frame's VR keyboard (SteamVR keybo
 
 ![Caps Lock, Meta armed, sound off](docs/images/keyboard-caps-meta.png)
 
+https://github.com/user-attachments/assets/3da5f853-1f6d-4363-8bb9-8c21c20262b2
+
 ## Features
 
 - Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps Lock, shown as a filled arrow), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
@@ -55,6 +57,9 @@ tar xzf frame-keyboard-*.tar.gz
 cd frame-keyboard
 ./install.sh
 ```
+OR
+
+https://github.com/user-attachments/assets/0e307645-bbf2-454b-8597-1a250dc3b64a
 
 The archive already contains the built bundle, so Node.js is not needed. Releases are built by GitHub Actions from a version tag; `SHA256SUMS` is attached for checking the download.
 
