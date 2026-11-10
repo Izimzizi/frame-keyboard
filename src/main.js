@@ -18,6 +18,7 @@ import {
   getKeyboardManagers,
   isOurCall,
   releaseHeldKeys,
+  holdKey,
 } from './steam.js';
 import { PAGES } from './layout.js';
 import { createClickSound } from './click-sound.js';
@@ -61,6 +62,31 @@ const install = () => {
   const shift = createShift();
   /** One-shot Ctrl / Alt / Meta (key-chords.js). */
   const modifiers = createModifiers();
+  /**
+   * Whether Ctrl / Shift is pressed in the OS right now. An armed Ctrl or a lit Shift is really held
+   * down, so a mouse or touch click in another window is a Ctrl-click / Shift-click (multi-select).
+   * A key on our keyboard sends its chord (which presses and releases the modifier itself) and
+   * disarms; the release is then confirmed by syncHolds. Released when the keyboard closes.
+   */
+  const holds = { ctrl: false, shift: false };
+
+  /**
+   * Make the OS state of Ctrl / Shift match the keyboard's: pressed while armed / lit, released
+   * otherwise (the release goes through the output queue, so it follows any chord still waiting).
+   * @param {boolean} [release=false] - Release both regardless (keyboard closed, overlay off)
+   * @returns {void}
+   * @example
+   * syncHolds()
+   */
+  const syncHolds = (release = false) => {
+    const want = { ctrl: !release && modifiers.ctrl, shift: !release && shift.state !== 'off' };
+    for (const name of /** @type {const} */ (['ctrl', 'shift'])) {
+      if (holds[name] === want[name]) continue;
+      holds[name] = want[name];
+      if (want[name]) holdKey(MODIFIER_CODES[name], true);
+      else send([{ keys: [[MODIFIER_CODES[name], false]] }]);
+    }
+  };
   const output = createOutput(() => {
     const status = statusStore?.VRKeyboardStatus;
     return { buffered: !!status?.bIsOpen && !status.bMinimal, vrStatus: status };
@@ -127,6 +153,7 @@ const install = () => {
     queueMicrotask(() => {
       renderQueued = false;
       try {
+        syncHolds();
         overlay?.render({
           shift: autoCapital() && !modifiers.active ? 'once' : shift.state,
           modifiers: { ctrl: modifiers.ctrl, alt: modifiers.alt, meta: modifiers.meta },
@@ -150,7 +177,11 @@ const install = () => {
   const setEnabled = (value) => {
     settings.enabled = !!value;
     saveSettings(settings);
-    if (!settings.enabled) modifiers.clear();
+    if (!settings.enabled) {
+      modifiers.clear();
+      shift.reset();
+      syncHolds(true);
+    }
     overlay?.setEnabled(settings.enabled);
     scheduleRender();
     log(settings.enabled ? 'overlay enabled' : 'overlay disabled (stock keyboard)');
@@ -369,6 +400,9 @@ const install = () => {
         log(`keyboard opened${status ? ` (${status.bMinimal ? 'minimal' : 'buffered'} mode)` : ''}`);
       } else if (!open && wasOpen) {
         modifiers.clear();
+        shift.reset();
+        syncHolds(true);
+        scheduleRender(); // the keys are released, so redraw them unlit
         overlay?.cancelGesture();
         log('keyboard closed');
       }
@@ -447,6 +481,8 @@ const install = () => {
     apiRecorder?.uninstall();
     apiRecorder = null;
     modifiers.clear();
+    shift.reset();
+    for (const name of ['ctrl', 'shift']) if (holds[name]) holdKey(MODIFIER_CODES[name], false);
     releaseHeldKeys(); // nothing should be held, but never leave a key pressed in the OS
     overlay?.destroy();
     overlay = null;

@@ -246,6 +246,27 @@ export const releaseHeldKeys = () => {
 };
 
 /**
+ * Press or release one key and leave it that way (a held Ctrl / Shift for mouse clicks). Unlike
+ * sendKeyEvents, nothing releases it afterwards; the caller must release it.
+ * @param {number} code - Key code
+ * @param {boolean} down - True to press, false to release
+ * @returns {boolean} False when the key-state call is missing or failed
+ * @example
+ * holdKey(103, true)
+ */
+export const holdKey = (code, down) => {
+  try {
+    const setKeyState = getSetKeyState();
+    if (!setKeyState) return false;
+    setKeyState(code, down);
+    return true;
+  } catch (error) {
+    warn('hold key failed', error);
+    return false;
+  }
+};
+
+/**
  * Press and release keys in order (one chord; see key-chords.js's planChord).
  * @param {[number, boolean][]} events - [code, down] pairs
  * @returns {boolean} False when the chord could not be sent (nothing stays pressed either way)

@@ -17,7 +17,7 @@ https://github.com/user-attachments/assets/3da5f853-1f6d-4363-8bb9-8c21c20262b2
 ## Features
 
 - Full PC layout: number row, Tab, Del, Enter, Shift (tap once for one capital, double tap for Caps Lock, shown as a filled arrow), Backspace, Space and the four arrow keys, all with auto-repeat where it makes sense.
-- **Ctrl, Alt and Meta** one-shot modifiers. Tap a modifier, then tap a key to send the chord (Ctrl then C copies, Alt then Tab, Meta then R, and so on). Tap the modifier again to cancel it.
+- **Ctrl, Alt and Meta** one-shot modifiers. Tap a modifier, then tap a key to send the chord (Ctrl then C copies, Alt then Tab, Meta then R, and so on). Tap the modifier again to cancel it. An armed Ctrl (and a lit Shift) is really held down until the next key or until you tap it again, so you can Ctrl-click or Shift-click items to select several. Held keys are released when the keyboard closes.
 - **Meta, twice:** tap Meta once and it waits for the next key. Tap it a second time, with no time limit in between, and it is sent on its own: on Windows this opens the Start menu. The key shows the Windows logo on Windows and the Steam logo on SteamOS.
 - **Shift+Enter:** arm Shift, then tap Enter to send Shift+Enter (a new line in a chat box or text area; plain Enter submits).
 - Esc and F1 to F12 in a strip above the keys.
